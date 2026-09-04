@@ -83,6 +83,7 @@ supabase/migrations/0001_init.sql
 supabase/migrations/0002_scenarios.sql
 supabase/migrations/0003_activities.sql
 supabase/migrations/0004_coaching_plans_and_pacing.sql
+supabase/migrations/0005_schema_hardening.sql
 
 supabase/seed/skill_items_en.sql
 supabase/seed/scenarios.sql
