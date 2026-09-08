@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { getLocalUserId } from "@/lib/mcp/shared";
+import { getActiveLanguage } from "@/lib/profile/active-profile";
 import { orderUserItemStatusByPriority } from "@/lib/skill-items/rank";
 import { DashboardHeader } from "../_components/dashboard-header";
 import { FlashcardDeck, type Flashcard } from "./flashcard-deck";
@@ -54,7 +55,7 @@ export default async function FlashcardsPage() {
           avaliações e conversas. Toque no cartão pra avaliar se você lembrou.
         </p>
 
-        <FlashcardDeck cards={cards} />
+        <FlashcardDeck cards={cards} idioma={getActiveLanguage()} />
       </main>
 
     </>

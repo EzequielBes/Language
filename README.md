@@ -65,8 +65,9 @@ telas de verdade lá, porque são mais rápidas de usar do que via chat.
   (pronúncia) e leitura/escuta guiada (input um nível acima do seu, i+1).
   Dá pra criar cenários personalizados também.
 - **Flashcards** — os itens que você ainda não domina, com virada em 3D,
-  histórico personalizado por cartão e repetição espaçada (intervalos
-  graduados: 1, 3, 7, 16, 35 dias).
+  histórico personalizado por cartão, repetição espaçada por fator de
+  facilidade (SM-2-lite) e um botão de pronúncia (Web Speech API nativa do
+  navegador, sem custo extra).
 - **Atividades** — múltipla escolha, complete a lacuna (cloze) e "qual o
   significado", geradas a partir dos seus pontos fracos. Motor extensível:
   um tipo de exercício novo é só um gerador + uma linha de registro, sem

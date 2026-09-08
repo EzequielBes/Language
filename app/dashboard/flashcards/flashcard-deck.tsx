@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { PartyPopper } from "lucide-react";
 import { INTERVALOS_DIAS } from "@/lib/assessment/spaced-repetition";
+import { PronounceButton } from "../_components/pronounce-button";
 
 export interface Flashcard {
   skillItemId: string;
@@ -44,7 +45,7 @@ function legendaHistorico(card: Flashcard): string {
   return "Você já viu isso antes, mas ainda não firmou.";
 }
 
-export function FlashcardDeck({ cards }: { cards: Flashcard[] }) {
+export function FlashcardDeck({ cards, idioma }: { cards: Flashcard[]; idioma: string }) {
   const [total] = useState(cards.length);
   const [fila, setFila] = useState(cards);
   const [virado, setVirado] = useState(false);
@@ -106,7 +107,10 @@ export function FlashcardDeck({ cards }: { cards: Flashcard[] }) {
           saindo ? "-translate-x-6 opacity-0" : "translate-x-0 opacity-100"
         }`}
       >
-        <div className="[perspective:1200px]">
+        <div className="relative [perspective:1200px]">
+          <div className="absolute right-3 top-3 z-10">
+            <PronounceButton texto={atual.texto} idioma={idioma} />
+          </div>
           <button
             type="button"
             onClick={() => !respondendo && setVirado((v) => !v)}
