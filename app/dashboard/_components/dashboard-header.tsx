@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
-import { LayoutDashboard, MessageCircle, Layers, ListChecks, Map, NotebookPen, Mail } from "lucide-react";
+import { LayoutDashboard, MessageCircle, Layers, ListChecks, Map, NotebookPen, Mail, BookOpen } from "lucide-react";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { DEFAULT_LANGUAGE, IDIOMA_RE, getActiveLanguage, setActiveLanguage } from "@/lib/profile/active-profile";
 import { ensureLanguageProfile, listLanguageProfiles } from "@/lib/profile/language-profiles";
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/dashboard/cenarios", label: "Cenários", Icon: MessageCircle },
   { href: "/dashboard/flashcards", label: "Flashcards", Icon: Layers },
   { href: "/dashboard/atividades", label: "Atividades", Icon: ListChecks },
+  { href: "/dashboard/vocabulario", label: "Vocabulário", Icon: BookOpen },
   { href: "/dashboard/plano", label: "Plano", Icon: Map },
   { href: "/dashboard/erros", label: "Erros", Icon: NotebookPen },
 ] as const;

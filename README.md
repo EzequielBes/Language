@@ -81,6 +81,8 @@ telas de verdade lá, porque são mais rápidas de usar do que via chat.
   cenários disponíveis.
 - **Priorização por frequência** — itens mais relevantes/frequentes têm
   prioridade na hora de escolher o que praticar.
+- **Meu vocabulário** — lista tudo que você já domina, agrupado por
+  domínio, com exportação em CSV.
 
 ## Capturas de tela
 
@@ -117,13 +119,20 @@ telas de verdade lá, porque são mais rápidas de usar do que via chat.
   </tr>
   <tr>
     <td width="50%">
+      <p align="center"><strong>Meu vocabulário</strong></p>
+      <img src="docs/screenshots/vocabulario.png" alt="Itens dominados agrupados por domínio, com exportação em CSV">
+    </td>
+    <td width="50%">
       <p align="center"><strong>Landing</strong></p>
       <img src="docs/screenshots/landing.png" alt="Página inicial explicando a proposta do Correio">
     </td>
+  </tr>
+  <tr>
     <td width="50%">
       <p align="center"><strong>Conectar ao Claude</strong></p>
       <img src="docs/screenshots/connect.png" alt="Instruções e JSON gerado para configurar o Claude Desktop">
     </td>
+    <td width="50%"></td>
   </tr>
 </table>
 
@@ -225,17 +234,19 @@ lib/profile/
   language-profiles.ts          → consulta/criação de perfil por idioma (Supabase)
 lib/assessment/
   adaptive.ts                   → heurística de nível por domínio (pura, testada)
-  spaced-repetition.ts          → intervalos de repetição espaçada (pura, testada)
+  spaced-repetition.ts          → SM-2-lite: fator de facilidade por item (pura, testada)
 lib/activities/                 → motor de atividades extensível (types/registry/generators)
 lib/study-plan/                 → catálogo Can-Do, montagem do plano (pura, testada), progresso
 lib/progress/record-response.ts → motor único de escrita de progresso
 lib/skill-items/rank.ts         → critério único de priorização de item
+lib/speech/locale.ts            → idioma → locale BCP-47 pra pronúncia (pura, testada)
+lib/vocabulario/export.ts       → serialização CSV do vocabulário dominado (pura, testada)
 lib/supabase/server.ts          → cliente Supabase (service-role)
 lib/http/same-origin.ts         → mitigação de CSRF local
 app/
   page.tsx, connect/            → landing e instruções de conexão
-  dashboard/                    → painel, cenários, flashcards, atividades, plano, erros
-  dashboard/_components/        → header/nav, cards, seletor de idioma (compartilhados)
+  dashboard/                    → painel, cenários, flashcards, atividades, vocabulário, plano, erros
+  dashboard/_components/        → header/nav, cards, botão de pronúncia, seletor de idioma
   api/                          → rotas que mutam progresso (flashcards, atividades)
 supabase/
   migrations/                   → schema completo, em ordem
