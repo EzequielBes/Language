@@ -132,13 +132,17 @@ comece uma conversa nova.
 ## Estrutura do projeto
 
 ```
-mcp-server/index.ts          → entrypoint stdio, carrega .env.local, registra as 18 tools
+mcp-server/index.ts          → entrypoint stdio, carrega .env.local, registra as 21 tools
 lib/mcp/
   tools.ts                   → onboarding + avaliação adaptativa (7 tools)
   scenarios.ts                → cenários/personas de conversa (5 tools)
   coaching.ts                 → professor especialista (3 tools)
   study-plan.ts                → planos de estudo (3 tools)
-  shared.ts                   → identidade local (LOCAL_USER_ID), helpers
+  language-profiles.ts         → perfis por idioma, estilo Duolingo (3 tools)
+  shared.ts                   → helpers (getLocalUserId, json, dbFail)
+lib/profile/
+  active-profile.ts            → idioma ativo (arquivo local compartilhado MCP/dashboard)
+  language-profiles.ts         → consulta/criação de perfil por idioma (Supabase)
 lib/assessment/
   adaptive.ts                  → heurística de nível por domínio (pura, testada)
   spaced-repetition.ts         → intervalos de repetição espaçada (pura, testada)

@@ -1,5 +1,5 @@
 import type { supabaseAdmin } from "@/lib/supabase/server";
-import { LOCAL_USER_ID } from "@/lib/mcp/shared";
+import { getLocalUserId } from "@/lib/mcp/shared";
 
 /**
  * Progresso de um milestone calculado on-demand a partir de
@@ -19,7 +19,7 @@ export async function progressoDoMilestone(
   const { data: statuses } = await db
     .from("user_item_status")
     .select("status")
-    .eq("user_id", LOCAL_USER_ID)
+    .eq("user_id", getLocalUserId())
     .in("skill_item_id", ids);
 
   const conhecidos = (statuses ?? []).filter((s) => s.status === "conhecido").length;

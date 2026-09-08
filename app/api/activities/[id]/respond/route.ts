@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { LOCAL_USER_ID } from "@/lib/mcp/shared";
+import { getLocalUserId } from "@/lib/mcp/shared";
 import { isSameOrigin } from "@/lib/http/same-origin";
 import { GENERATORS } from "@/lib/activities/registry";
 import { recordPracticeResponse } from "@/lib/progress/record-response";
@@ -26,7 +26,7 @@ export async function POST(
     .from("activities")
     .select("id, tipo, dominio, payload, fonte_skill_item_ids, status")
     .eq("id", id)
-    .eq("user_id", LOCAL_USER_ID)
+    .eq("user_id", getLocalUserId())
     .single();
   if (error) {
     return NextResponse.json({ error: "atividade nao encontrada" }, { status: 404 });
@@ -45,7 +45,7 @@ export async function POST(
 
   const { error: responseError } = await db.from("activity_responses").insert({
     activity_id: activity.id,
-    user_id: LOCAL_USER_ID,
+    user_id: getLocalUserId(),
     resposta,
     correta: resultado.correta,
   });
@@ -63,7 +63,7 @@ export async function POST(
   // (adaptar quando um gerador cobrir mais de um dominio por vez).
   for (const skillItemId of activity.fonte_skill_item_ids ?? []) {
     await recordPracticeResponse(db, {
-      userId: LOCAL_USER_ID,
+      userId: getLocalUserId(),
       skillItemId,
       domain: activity.dominio as Domain,
       resultado: resultado.correta ? "conhecido" : "desconhecido",

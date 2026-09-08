@@ -1,8 +1,8 @@
-// Uso local/pessoal: um usuario so, identificado por uma constante fixa —
-// nao ha login nem token para verificar (o servidor MCP roda local via
-// stdio, iniciado pelo Claude Desktop; o dashboard so e acessado via
-// localhost). Ambos usam essa mesma identidade.
-export const LOCAL_USER_ID = "local";
+// Uso local/pessoal: sem login nem token pra verificar (o servidor MCP roda
+// local via stdio, iniciado pelo Claude Desktop; o dashboard so e acessado
+// via localhost). A identidade agora depende do idioma ativo no momento da
+// chamada (multi-perfil estilo Duolingo) — ver lib/profile/active-profile.ts.
+export { getLocalUserId } from "@/lib/profile/active-profile";
 
 export function json(data: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(data) }] };

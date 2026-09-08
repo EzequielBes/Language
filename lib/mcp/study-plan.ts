@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { dbFail, json, LOCAL_USER_ID } from "@/lib/mcp/shared";
+import { dbFail, json, getLocalUserId } from "@/lib/mcp/shared";
 import { buildMilestones, type ScenarioDisponivel } from "@/lib/study-plan/build-plan";
 import type { TipoObjetivo } from "@/lib/study-plan/can-do-catalog";
 import { progressoDoMilestone } from "@/lib/study-plan/progress";
@@ -26,7 +26,7 @@ export function registerStudyPlanTools(server: McpServer) {
       title: "Gerar plano de estudo",
       description:
         "Gera um plano de estudo personalizado (sequencia de metas 'consigo fazer') a partir do objetivo e nivel atual do aluno. Chame apos onboarding/avaliacao. Substitui o plano ativo anterior, se houver.",
-      inputSchema: z.object({ goal_id: z.string().uuid().optional() }),
+      inputSchema: z.object({ goal_id: z.string().optional() }),
     },
     async (args) => {
       const db = supabaseAdmin();
@@ -36,7 +36,7 @@ export function registerStudyPlanTools(server: McpServer) {
         : db
             .from("goals")
             .select("id, tipo")
-            .eq("user_id", LOCAL_USER_ID)
+            .eq("user_id", getLocalUserId())
             .order("criado_em", { ascending: false })
             .limit(1)
             .single();
@@ -46,7 +46,7 @@ export function registerStudyPlanTools(server: McpServer) {
         { data: goal, error: goalError },
         { data: scenarios, error: scenariosError },
       ] = await Promise.all([
-        db.from("profiles").select("nivel_estimado, nivel_pratica").eq("user_id", LOCAL_USER_ID).single(),
+        db.from("profiles").select("nivel_estimado, nivel_pratica").eq("user_id", getLocalUserId()).single(),
         goalQuery,
         db.from("scenarios").select("id, tags"),
       ]);
@@ -80,12 +80,12 @@ export function registerStudyPlanTools(server: McpServer) {
       await db
         .from("study_plans")
         .update({ status: "abandonado" })
-        .eq("user_id", LOCAL_USER_ID)
+        .eq("user_id", getLocalUserId())
         .eq("status", "ativo");
 
       const { data: plan, error: planError } = await db
         .from("study_plans")
-        .insert({ user_id: LOCAL_USER_ID, goal_id: goal.id, status: "ativo" })
+        .insert({ user_id: getLocalUserId(), goal_id: goal.id, status: "ativo" })
         .select("id")
         .single();
       if (planError) dbFail(planError);
@@ -121,7 +121,7 @@ export function registerStudyPlanTools(server: McpServer) {
       const { data: plan, error: planError } = await db
         .from("study_plans")
         .select("id, criado_em, study_plan_items(*)")
-        .eq("user_id", LOCAL_USER_ID)
+        .eq("user_id", getLocalUserId())
         .eq("status", "ativo")
         .maybeSingle();
       if (planError) dbFail(planError);
@@ -147,7 +147,7 @@ export function registerStudyPlanTools(server: McpServer) {
     {
       title: "Avançar meta do plano",
       description: "Marca uma meta (milestone) do plano de estudo ativo como concluida.",
-      inputSchema: z.object({ study_plan_item_id: z.string().uuid() }),
+      inputSchema: z.object({ study_plan_item_id: z.string() }),
     },
     async (args) => {
       const db = supabaseAdmin();

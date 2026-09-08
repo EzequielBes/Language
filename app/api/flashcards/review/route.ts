@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { LOCAL_USER_ID } from "@/lib/mcp/shared";
+import { getLocalUserId } from "@/lib/mcp/shared";
 import { isSameOrigin } from "@/lib/http/same-origin";
 import { recordPracticeResponse } from "@/lib/progress/record-response";
 import type { Domain } from "@/lib/assessment/adaptive";
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   }
 
   const resultado = await recordPracticeResponse(db, {
-    userId: LOCAL_USER_ID,
+    userId: getLocalUserId(),
     skillItemId: parsed.data.skill_item_id,
     domain: item.tipo as Domain,
     resultado: parsed.data.resultado,

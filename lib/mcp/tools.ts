@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { CEFR_LEVELS, cefrToNumber, numberToCefr, type Cefr } from "@/lib/cefr";
-import { dbFail, json, LOCAL_USER_ID } from "@/lib/mcp/shared";
+import { dbFail, json, getLocalUserId } from "@/lib/mcp/shared";
 import {
   applyResponse,
   proximoDominio,
@@ -19,10 +19,12 @@ async function pickItem(
   opts: { idioma: string; tipo: Domain; nivel: Cefr; excluir: string[] },
 ) {
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  // itens_ids_respondidos ja e populado apenas com skill_item_id validados
-  // por zod (.uuid()) antes de serem gravados, mas revalidamos o formato
-  // aqui tambem — esta funcao interpola os ids direto na string do filtro
-  // .not(), e nao deve confiar cegamente em quem a chamar no futuro.
+  // zod so valida "e uma string" nesses campos agora (um client MCP real
+  // testado nao mandava o argumento quando o schema usava
+  // z.string().uuid() — formato+pattern juntos no json-schema gerado
+  // confundia o preenchimento de argumentos dele), entao o formato de uuid
+  // nunca chega validado aqui — filtra porque esta funcao interpola os ids
+  // direto na string do filtro .not().
   const excluir = opts.excluir.filter((id) => UUID_RE.test(id));
 
   const query = (comNivel: boolean) => {
@@ -46,6 +48,28 @@ async function pickItem(
   return qualquer ?? null;
 }
 
+async function resolveAssessmentSessionId(
+  db: ReturnType<typeof supabaseAdmin>,
+  sessionId?: string,
+) {
+  if (sessionId) return sessionId;
+
+  const { data: session, error } = await db
+    .from("assessment_sessions")
+    .select("id")
+    .eq("user_id", getLocalUserId())
+    .eq("status", "em_andamento")
+    .order("iniciado_em", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) dbFail(error);
+  if (!session) {
+    throw new Error("Inicie uma sessao de avaliacao antes de continuar.");
+  }
+
+  return session.id;
+}
+
 export function registerTools(server: McpServer) {
   server.registerTool(
     "get_or_create_profile",
@@ -61,13 +85,13 @@ export function registerTools(server: McpServer) {
       const { data: existing } = await db
         .from("profiles")
         .select("*")
-        .eq("user_id", LOCAL_USER_ID)
+        .eq("user_id", getLocalUserId())
         .maybeSingle();
       if (existing) return json(existing);
 
       const { data: created, error } = await db
         .from("profiles")
-        .insert({ user_id: LOCAL_USER_ID })
+        .insert({ user_id: getLocalUserId() })
         .select("*")
         .single();
       if (error) dbFail(error);
@@ -101,7 +125,7 @@ export function registerTools(server: McpServer) {
       const { data: profile, error: profileError } = await db
         .from("profiles")
         .upsert({
-          user_id: LOCAL_USER_ID,
+          user_id: getLocalUserId(),
           idioma_alvo: args.idioma_alvo,
           idioma_nativo: args.idioma_nativo,
           nivel_autodeclarado: args.nivel_autodeclarado,
@@ -114,7 +138,7 @@ export function registerTools(server: McpServer) {
       const { data: goal, error: goalError } = await db
         .from("goals")
         .insert({
-          user_id: LOCAL_USER_ID,
+          user_id: getLocalUserId(),
           tipo: args.tipo_objetivo,
           descricao_livre: args.descricao_livre,
         })
@@ -132,7 +156,7 @@ export function registerTools(server: McpServer) {
       title: "Iniciar sessao de avaliacao",
       description:
         "Inicia uma sessao de avaliacao adaptativa de nivel, semeada a partir do nivel autodeclarado do aluno.",
-      inputSchema: z.object({ goal_id: z.string().uuid().optional() }),
+      inputSchema: z.object({ goal_id: z.string().optional() }),
     },
     async (args) => {
       const db = supabaseAdmin();
@@ -140,7 +164,7 @@ export function registerTools(server: McpServer) {
       const { data: profile, error: profileError } = await db
         .from("profiles")
         .select("nivel_autodeclarado")
-        .eq("user_id", LOCAL_USER_ID)
+        .eq("user_id", getLocalUserId())
         .single();
       if (profileError) dbFail(profileError);
       if (!profile.nivel_autodeclarado) {
@@ -154,7 +178,7 @@ export function registerTools(server: McpServer) {
       const { data: session, error } = await db
         .from("assessment_sessions")
         .insert({
-          user_id: LOCAL_USER_ID,
+          user_id: getLocalUserId(),
           goal_id: args.goal_id ?? null,
           estado_adaptativo: estado,
         })
@@ -165,7 +189,7 @@ export function registerTools(server: McpServer) {
       await db
         .from("profiles")
         .update({ onboarding_status: "avaliando" })
-        .eq("user_id", LOCAL_USER_ID);
+        .eq("user_id", getLocalUserId());
 
       return json({ session_id: session.id });
     },
@@ -176,17 +200,18 @@ export function registerTools(server: McpServer) {
     {
       title: "Proximo item da avaliacao",
       description:
-        "Retorna o proximo item (vocabulario, gramatica ou expressao) a testar na sessao de avaliacao, escolhido adaptativamente. Retorna done:true quando a sessao terminou.",
-      inputSchema: z.object({ session_id: z.string().uuid() }),
+        "Retorna o proximo item (vocabulario, gramatica ou expressao) a testar na sessao de avaliacao mais recente em andamento, escolhido adaptativamente. Informe session_id somente para selecionar outra sessao. Retorna done:true quando a sessao terminou.",
+      inputSchema: z.object({ session_id: z.string().optional() }),
     },
     async (args) => {
       const db = supabaseAdmin();
+      const sessionId = await resolveAssessmentSessionId(db, args.session_id);
 
       const { data: session, error } = await db
         .from("assessment_sessions")
         .select("*, profiles!inner(idioma_alvo)")
-        .eq("id", args.session_id)
-        .eq("user_id", LOCAL_USER_ID)
+        .eq("id", sessionId)
+        .eq("user_id", getLocalUserId())
         .single();
       if (error) dbFail(error);
 
@@ -231,15 +256,16 @@ export function registerTools(server: McpServer) {
     {
       title: "Registrar resposta do aluno",
       description:
-        "Registra se o aluno demonstrou conhecer, nao conhecer ou conhecer parcialmente um item, atualizando o nivel estimado do dominio.",
+        "Registra se o aluno demonstrou conhecer, nao conhecer ou conhecer parcialmente um item na avaliacao mais recente em andamento, atualizando o nivel estimado do dominio. Informe session_id somente para selecionar outra sessao.",
       inputSchema: z.object({
-        session_id: z.string().uuid(),
-        skill_item_id: z.string().uuid(),
+        session_id: z.string().optional(),
+        skill_item_id: z.string(),
         status: z.enum(["conhecido", "desconhecido", "parcial"]),
       }),
     },
     async (args) => {
       const db = supabaseAdmin();
+      const sessionId = await resolveAssessmentSessionId(db, args.session_id);
 
       const [
         { data: session, error: sessionError },
@@ -249,14 +275,14 @@ export function registerTools(server: McpServer) {
         db
           .from("assessment_sessions")
           .select("*")
-          .eq("id", args.session_id)
-          .eq("user_id", LOCAL_USER_ID)
+          .eq("id", sessionId)
+          .eq("user_id", getLocalUserId())
           .single(),
         db.from("skill_items").select("tipo").eq("id", args.skill_item_id).single(),
         db
           .from("user_item_status")
           .select("streak")
-          .eq("user_id", LOCAL_USER_ID)
+          .eq("user_id", getLocalUserId())
           .eq("skill_item_id", args.skill_item_id)
           .maybeSingle(),
       ]);
@@ -277,7 +303,7 @@ export function registerTools(server: McpServer) {
             args.skill_item_id,
           ],
         })
-        .eq("id", args.session_id);
+        .eq("id", sessionId);
       if (updateError) dbFail(updateError);
 
       const itemStatus =
@@ -291,7 +317,7 @@ export function registerTools(server: McpServer) {
         args.status as ItemStatus,
       );
       await db.from("user_item_status").upsert({
-        user_id: LOCAL_USER_ID,
+        user_id: getLocalUserId(),
         skill_item_id: args.skill_item_id,
         status: itemStatus,
         ultima_revisao: new Date().toISOString(),
@@ -312,17 +338,18 @@ export function registerTools(server: McpServer) {
     {
       title: "Finalizar sessao de avaliacao",
       description:
-        "Fecha a sessao de avaliacao e grava o nivel estimado final por dominio no perfil do aluno.",
-      inputSchema: z.object({ session_id: z.string().uuid() }),
+        "Fecha a sessao de avaliacao mais recente em andamento e grava o nivel estimado final por dominio no perfil do aluno. Informe session_id somente para selecionar outra sessao.",
+      inputSchema: z.object({ session_id: z.string().optional() }),
     },
     async (args) => {
       const db = supabaseAdmin();
+      const sessionId = await resolveAssessmentSessionId(db, args.session_id);
 
       const { data: session, error } = await db
         .from("assessment_sessions")
         .select("estado_adaptativo")
-        .eq("id", args.session_id)
-        .eq("user_id", LOCAL_USER_ID)
+        .eq("id", sessionId)
+        .eq("user_id", getLocalUserId())
         .single();
       if (error) dbFail(error);
 
@@ -338,12 +365,12 @@ export function registerTools(server: McpServer) {
           finalizado_em: new Date().toISOString(),
           nivel_resultante_estimado: nivelEstimado,
         })
-        .eq("id", args.session_id);
+        .eq("id", sessionId);
 
       await db
         .from("profiles")
         .update({ nivel_estimado: nivelEstimado, onboarding_status: "avaliado" })
-        .eq("user_id", LOCAL_USER_ID);
+        .eq("user_id", getLocalUserId());
 
       return json({ nivel_estimado: nivelEstimado });
     },
@@ -354,7 +381,7 @@ export function registerTools(server: McpServer) {
     {
       title: "Resumo do perfil",
       description:
-        "Visao consolidada do aluno: objetivo atual, nivel autodeclarado/estimado por dominio, contagem de itens conhecidos/aprendendo/desconhecidos e ultima avaliacao. Use para retomar o contexto em qualquer conversa nova.",
+        "Visao consolidada do aluno: objetivo atual, nivel autodeclarado/estimado por dominio, contagem de itens conhecidos/aprendendo/desconhecidos, ultima avaliacao e itens com revisao espacada vencida. Use para retomar o contexto em qualquer conversa nova — se houver revisoes_vencidas, avise o aluno e ofereça revisar antes de seguir pra algo novo.",
       inputSchema: z.object({}),
     },
     async () => {
@@ -365,23 +392,30 @@ export function registerTools(server: McpServer) {
         { data: goal },
         { data: itemStatuses },
         { data: lastSession },
+        { data: vencidos },
       ] = await Promise.all([
-        db.from("profiles").select("*").eq("user_id", LOCAL_USER_ID).maybeSingle(),
+        db.from("profiles").select("*").eq("user_id", getLocalUserId()).maybeSingle(),
         db
           .from("goals")
           .select("*")
-          .eq("user_id", LOCAL_USER_ID)
+          .eq("user_id", getLocalUserId())
           .order("criado_em", { ascending: false })
           .limit(1)
           .maybeSingle(),
-        db.from("user_item_status").select("status").eq("user_id", LOCAL_USER_ID),
+        db.from("user_item_status").select("status").eq("user_id", getLocalUserId()),
         db
           .from("assessment_sessions")
           .select("*")
-          .eq("user_id", LOCAL_USER_ID)
+          .eq("user_id", getLocalUserId())
           .order("iniciado_em", { ascending: false })
           .limit(1)
           .maybeSingle(),
+        db
+          .from("user_item_status")
+          .select("skill_item_id, skill_items(texto, tipo)")
+          .eq("user_id", getLocalUserId())
+          .lte("proxima_revisao_em", new Date().toISOString())
+          .order("proxima_revisao_em", { ascending: true }),
       ]);
 
       const contagem = { conhecido: 0, aprendendo: 0, desconhecido: 0 };
@@ -389,11 +423,22 @@ export function registerTools(server: McpServer) {
         contagem[row.status as keyof typeof contagem] += 1;
       }
 
+      const listaVencidos = (vencidos ?? []) as unknown as {
+        skill_items: { texto: string; tipo: Domain } | null;
+      }[];
+
       return json({
         profile,
         objetivo_atual: goal,
         contagem_itens: contagem,
         ultima_sessao: lastSession,
+        revisoes_vencidas: {
+          total: listaVencidos.length,
+          amostra: listaVencidos
+            .slice(0, 5)
+            .filter((v) => v.skill_items)
+            .map((v) => ({ texto: v.skill_items!.texto, dominio: v.skill_items!.tipo })),
+        },
       });
     },
   );

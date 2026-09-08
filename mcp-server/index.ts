@@ -6,6 +6,7 @@ import { registerTools } from "@/lib/mcp/tools";
 import { registerScenarioTools } from "@/lib/mcp/scenarios";
 import { registerCoachingTools } from "@/lib/mcp/coaching";
 import { registerStudyPlanTools } from "@/lib/mcp/study-plan";
+import { registerLanguageProfileTools } from "@/lib/mcp/language-profiles";
 
 // Claude Desktop inicia este processo sem herdar o .env.local do projeto —
 // carrega explicitamente, resolvido pelo local do proprio arquivo (nao pelo
@@ -26,5 +27,6 @@ serveStdio(() => {
   registerScenarioTools(server);
   registerCoachingTools(server);
   registerStudyPlanTools(server);
+  registerLanguageProfileTools(server);
   return server;
 });

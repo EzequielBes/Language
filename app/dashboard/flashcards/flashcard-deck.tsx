@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { PartyPopper } from "lucide-react";
+import { INTERVALOS_DIAS } from "@/lib/assessment/spaced-repetition";
 
 export interface Flashcard {
   skillItemId: string;
   texto: string;
   dominio: string;
   nivel: string;
+  definicao: string | null;
   status: "aprendendo" | "desconhecido";
   streak: number;
 }
@@ -42,6 +45,7 @@ function legendaHistorico(card: Flashcard): string {
 }
 
 export function FlashcardDeck({ cards }: { cards: Flashcard[] }) {
+  const [total] = useState(cards.length);
   const [fila, setFila] = useState(cards);
   const [virado, setVirado] = useState(false);
   const [resultado, setResultado] = useState<Resultado | null>(null);
@@ -49,10 +53,13 @@ export function FlashcardDeck({ cards }: { cards: Flashcard[] }) {
 
   if (fila.length === 0) {
     return (
-      <p className="mt-8 text-ink-soft">
-        Nenhum cartão pendente agora. Eles aparecem aqui depois que você
-        conversa com o Claude ou faz uma avaliação de nível.
-      </p>
+      <div className="paper-card mt-8 flex flex-col items-center gap-3 px-8 py-12 text-center">
+        <PartyPopper size={28} strokeWidth={1.5} className="text-stamp" aria-hidden="true" />
+        <p className="text-ink-soft">
+          Nenhum cartão pendente agora. Eles aparecem aqui depois que você
+          conversa com o Claude ou faz uma avaliação de nível.
+        </p>
+      </div>
     );
   }
 
@@ -77,13 +84,26 @@ export function FlashcardDeck({ cards }: { cards: Flashcard[] }) {
     }, 620);
   }
 
+  const feitos = total - fila.length;
+
   return (
     <div className="mt-8">
-      <p className="text-xs text-ink-soft">{fila.length} restantes</p>
+      <div className="flex items-center justify-between text-xs text-ink-soft">
+        <span>{fila.length} restantes</span>
+        <span className="font-mono">
+          {feitos}/{total}
+        </span>
+      </div>
+      <div className="mt-2 h-1 overflow-hidden rounded-full bg-line">
+        <div
+          className="h-full bg-airmail transition-[width] duration-300 ease-out motion-reduce:transition-none"
+          style={{ width: `${total > 0 ? (feitos / total) * 100 : 0}%` }}
+        />
+      </div>
 
       <div
-        className={`mt-4 transition-opacity duration-200 motion-reduce:transition-none ${
-          saindo ? "opacity-0" : "opacity-100"
+        className={`mt-4 transition-[opacity,transform] duration-200 ease-in motion-reduce:transition-none ${
+          saindo ? "-translate-x-6 opacity-0" : "translate-x-0 opacity-100"
         }`}
       >
         <div className="[perspective:1200px]">
@@ -91,18 +111,18 @@ export function FlashcardDeck({ cards }: { cards: Flashcard[] }) {
             type="button"
             onClick={() => !respondendo && setVirado((v) => !v)}
             disabled={respondendo}
-            className="relative h-56 w-full text-left [transform-style:preserve-3d] transition-transform duration-500 ease-out motion-reduce:transition-none"
+            className="relative h-56 w-full rounded-2xl text-left [transform-style:preserve-3d] transition-transform duration-500 ease-out motion-reduce:transition-none"
             style={{ transform: virado ? "rotateY(180deg)" : "rotateY(0deg)" }}
           >
             {/* frente: o item a lembrar */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 border border-line bg-paper-shade p-8 text-center [backface-visibility:hidden]">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-2xl border border-line bg-paper-shade p-8 text-center shadow-[var(--shadow)] [backface-visibility:hidden]">
               <p className="font-display text-2xl">{atual.texto}</p>
               <p className="text-xs text-ink-soft">lembrou? toque para avaliar</p>
             </div>
 
             {/* verso: avaliação */}
             <div
-              className="absolute inset-0 flex flex-col items-center justify-center gap-3 border border-line bg-paper-shade p-8 text-center [backface-visibility:hidden]"
+              className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-2xl border border-line bg-paper-shade p-8 text-center shadow-[var(--shadow)] [backface-visibility:hidden]"
               style={{ transform: "rotateY(180deg)" }}
             >
               <div className="flex items-center gap-3">
@@ -114,6 +134,17 @@ export function FlashcardDeck({ cards }: { cards: Flashcard[] }) {
                 >
                   {atual.nivel}
                 </div>
+              </div>
+              {atual.definicao && (
+                <p className="max-w-xs text-sm italic text-ink">{atual.definicao}</p>
+              )}
+              <div className="flex gap-1" aria-hidden="true">
+                {INTERVALOS_DIAS.map((_, indice) => (
+                  <span
+                    key={indice}
+                    className={`h-1.5 w-4 ${indice < atual.streak ? "bg-correction" : "bg-line"}`}
+                  />
+                ))}
               </div>
               <p className="max-w-xs text-xs text-ink-soft">{legendaHistorico(atual)}</p>
             </div>
@@ -128,7 +159,7 @@ export function FlashcardDeck({ cards }: { cards: Flashcard[] }) {
                 type="button"
                 disabled={respondendo}
                 onClick={() => responder(opcao)}
-                className={`flex-1 border px-4 py-2 text-sm transition-colors disabled:opacity-50 ${
+                className={`flex-1 rounded-lg border px-4 py-2 text-sm transition-colors disabled:opacity-50 ${
                   opcao === "conhecido"
                     ? "border-correction text-correction hover:bg-correction hover:text-paper"
                     : opcao === "desconhecido"

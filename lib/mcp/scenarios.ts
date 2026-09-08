@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { dbFail, json, LOCAL_USER_ID } from "@/lib/mcp/shared";
+import { dbFail, json, getLocalUserId } from "@/lib/mcp/shared";
 import { recordPracticeResponse } from "@/lib/progress/record-response";
 import type { Domain } from "@/lib/assessment/adaptive";
 
@@ -33,7 +33,7 @@ export function registerScenarioTools(server: McpServer) {
           return q;
         })(),
         (() => {
-          let q = db.from("scenarios").select(campos).eq("user_id", LOCAL_USER_ID);
+          let q = db.from("scenarios").select(campos).eq("user_id", getLocalUserId());
           if (args.tipo_objetivo) q = q.eq("tipo_objetivo", args.tipo_objetivo);
           return q;
         })(),
@@ -64,7 +64,7 @@ export function registerScenarioTools(server: McpServer) {
       const { data, error } = await db
         .from("scenarios")
         .insert({
-          user_id: LOCAL_USER_ID,
+          user_id: getLocalUserId(),
           titulo: args.titulo,
           prompt_seed: args.prompt_seed,
           tipo_objetivo: args.tipo_objetivo ?? null,
@@ -85,7 +85,7 @@ export function registerScenarioTools(server: McpServer) {
       description:
         "Inicia uma sessao de conversa com um cenario/persona (por texto ou por voz nativa do Claude.ai) e retorna um briefing: siga-o para interpretar a persona. Sem scenario_id, monta um briefing generico de dia a dia a partir do objetivo do aluno.",
       inputSchema: z.object({
-        scenario_id: z.string().uuid().optional(),
+        scenario_id: z.string().optional(),
         canal: z.enum(["texto", "voz"]).optional(),
       }),
     },
@@ -100,7 +100,7 @@ export function registerScenarioTools(server: McpServer) {
           .eq("id", args.scenario_id)
           .single();
         if (error) dbFail(error);
-        if (scenario.user_id !== null && scenario.user_id !== LOCAL_USER_ID) {
+        if (scenario.user_id !== null && scenario.user_id !== getLocalUserId()) {
           throw new Error("Cenario nao encontrado.");
         }
         briefing = scenario.prompt_seed;
@@ -108,7 +108,7 @@ export function registerScenarioTools(server: McpServer) {
         const { data: goal } = await db
           .from("goals")
           .select("tipo, descricao_livre")
-          .eq("user_id", LOCAL_USER_ID)
+          .eq("user_id", getLocalUserId())
           .order("criado_em", { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -122,7 +122,7 @@ export function registerScenarioTools(server: McpServer) {
       const { data: session, error: sessionError } = await db
         .from("conversation_sessions")
         .insert({
-          user_id: LOCAL_USER_ID,
+          user_id: getLocalUserId(),
           scenario_id: args.scenario_id ?? null,
           canal: args.canal ?? "texto",
         })
@@ -141,8 +141,8 @@ export function registerScenarioTools(server: McpServer) {
       description:
         "Registra que um item de vocabulario/gramatica/expressao foi praticado durante a conversa com persona, atualizando o progresso do aluno.",
       inputSchema: z.object({
-        session_id: z.string().uuid(),
-        skill_item_id: z.string().uuid(),
+        session_id: z.string(),
+        skill_item_id: z.string(),
         resultado: z.enum(["conhecido", "desconhecido", "parcial"]),
       }),
     },
@@ -157,7 +157,7 @@ export function registerScenarioTools(server: McpServer) {
           .from("conversation_sessions")
           .select("id, itens_praticados_ids")
           .eq("id", args.session_id)
-          .eq("user_id", LOCAL_USER_ID)
+          .eq("user_id", getLocalUserId())
           .single(),
         db.from("skill_items").select("tipo").eq("id", args.skill_item_id).single(),
       ]);
@@ -176,7 +176,7 @@ export function registerScenarioTools(server: McpServer) {
       if (updateError) dbFail(updateError);
 
       const resultado = await recordPracticeResponse(db, {
-        userId: LOCAL_USER_ID,
+        userId: getLocalUserId(),
         skillItemId: args.skill_item_id,
         domain: item.tipo as Domain,
         resultado: args.resultado,
@@ -193,7 +193,7 @@ export function registerScenarioTools(server: McpServer) {
       description:
         "Fecha a sessao de conversa. Estruture o resumo em 3 partes curtas, nessa ordem: pontos fortes, o que precisa de atencao, e um proximo passo concreto — apps de idioma bem avaliados fecham sessao assim, resumo generico demais nao ajuda o aluno.",
       inputSchema: z.object({
-        session_id: z.string().uuid(),
+        session_id: z.string(),
         resumo: z.string().max(800).optional(),
       }),
     },
@@ -207,7 +207,7 @@ export function registerScenarioTools(server: McpServer) {
           resumo: args.resumo ?? null,
         })
         .eq("id", args.session_id)
-        .eq("user_id", LOCAL_USER_ID);
+        .eq("user_id", getLocalUserId());
       if (error) dbFail(error);
 
       return json({ ok: true });

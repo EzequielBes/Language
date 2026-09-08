@@ -10,20 +10,21 @@ interface SkillItemRow {
   tipo: Domain;
   nivel_cefr: Cefr;
   idioma: string;
+  definicao: string | null;
 }
 
 /**
- * "Qual desses voce ainda esta praticando?" — pega o item mais fraco do
- * aluno (status != conhecido, revisado ha mais tempo) e monta 3 distratores
- * de outros itens quaisquer. E um quiz de reconhecimento, nao de significado
- * — pra isso ver meaning-choice.ts, que usa skill_items.definicao.
+ * "O que significa X?" — mesmo formato do multiple-choice, mas testando
+ * significado (skill_items.definicao) em vez de reconhecimento do rotulo.
+ * So gera quando o item mais fraco e os itens usados como distrator tem
+ * definicao preenchida — nao todo idioma/item tem isso ainda.
  */
-export const multipleChoiceGenerator: ActivityGenerator = {
+export const meaningChoiceGenerator: ActivityGenerator = {
   async gerar(db, userId) {
     const { data: fraco } = await orderUserItemStatusByPriority(
       db
         .from("user_item_status")
-        .select("skill_item_id, skill_items(id, texto, tipo, nivel_cefr, idioma, prioridade)")
+        .select("skill_item_id, skill_items(id, texto, tipo, nivel_cefr, idioma, definicao, prioridade)")
         .eq("user_id", userId)
         .neq("status", "conhecido"),
     )
@@ -32,28 +33,29 @@ export const multipleChoiceGenerator: ActivityGenerator = {
 
     const alvo = (fraco as unknown as { skill_items: SkillItemRow | null } | null)
       ?.skill_items;
-    if (!alvo) return null;
+    if (!alvo?.definicao) return null;
 
     const { data: outros } = await db
       .from("skill_items")
-      .select("texto")
+      .select("definicao")
       .eq("idioma", alvo.idioma)
       .neq("id", alvo.id)
+      .not("definicao", "is", null)
       .limit(15);
 
-    const distratores = embaralhar((outros ?? []).map((o) => o.texto))
-      .filter((texto) => texto !== alvo.texto)
+    const distratores = embaralhar((outros ?? []).map((o) => o.definicao as string))
+      .filter((definicao) => definicao !== alvo.definicao)
       .slice(0, 3);
-    if (distratores.length < 3) return null; // dataset pequeno demais pra esta atividade
+    if (distratores.length < 3) return null; // dataset com poucas definicoes pra este idioma
 
-    const opcoes = embaralhar([alvo.texto, ...distratores]);
-    const respostaCorretaIndex = opcoes.indexOf(alvo.texto);
+    const opcoes = embaralhar([alvo.definicao, ...distratores]);
+    const respostaCorretaIndex = opcoes.indexOf(alvo.definicao);
 
     return {
       dominio: alvo.tipo,
       nivelCefr: alvo.nivel_cefr,
       payload: {
-        pergunta: "Qual dessas opções é o item que você está praticando agora?",
+        pergunta: `O que significa "${alvo.texto}"?`,
         opcoes,
         respostaCorretaIndex,
       },

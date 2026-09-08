@@ -43,3 +43,7 @@ next-env.d.ts
 
 # claude code local tool state (plugin config, scheduled-task locks)
 .claude/
+
+# idioma ativo do perfil local (multi-perfil estilo Duolingo) — estado de
+# maquina, nao de projeto
+/.local-profile.json
