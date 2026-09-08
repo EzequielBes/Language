@@ -42,7 +42,6 @@ const PASSOS = [
 export default function HomePage() {
   return (
     <>
-      <div className="airmail-stripe" />
 
       <header className="border-b border-line">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
@@ -60,6 +59,7 @@ export default function HomePage() {
 
       <main className="flex-1">
         <section className="mx-auto max-w-5xl px-6 pb-20 pt-16 md:pt-24">
+          <p className="page-kicker">Seu idioma, no seu ritmo</p>
           <h1 className="max-w-xl font-display text-4xl leading-[1.1] md:text-5xl">
             Aprenda o idioma que você precisa, conversando com o Claude que
             você já assina.
@@ -72,7 +72,7 @@ export default function HomePage() {
           <div className="mt-9 flex flex-wrap items-center gap-x-8 gap-y-3">
             <Link
               href="/connect"
-              className="border border-ink bg-ink px-5 py-2.5 text-sm text-paper hover:bg-stamp hover:border-stamp"
+              className="button-primary"
             >
               Conectar ao Claude
             </Link>
@@ -93,9 +93,10 @@ export default function HomePage() {
               {NIVEIS.map((nivel, i) => (
                 <div
                   key={nivel}
-                  className="postmark"
+                  className="postmark postmark-in"
                   data-filled={i < 2}
                   data-tone="stamp"
+                  style={{ "--delay": `${i * 90}ms` } as React.CSSProperties}
                 >
                   {nivel}
                 </div>
@@ -105,8 +106,9 @@ export default function HomePage() {
         </section>
 
         <section className="mx-auto max-w-5xl px-6 py-16">
-          <h2 className="font-display text-2xl">Para que você está aprendendo?</h2>
-          <div className="mt-8 grid gap-px overflow-hidden border border-line bg-line sm:grid-cols-2">
+          <p className="page-kicker">Um motivo para cada conversa</p>
+          <h2 className="mt-2 font-display text-2xl">Para que você está aprendendo?</h2>
+          <div className="mt-8 grid gap-px overflow-hidden rounded-2xl border border-line bg-line shadow-[var(--shadow)] sm:grid-cols-2">
             {OBJETIVOS.map((objetivo) => (
               <div key={objetivo.titulo} className="bg-paper p-6">
                 <span className="envelope-tag">{objetivo.titulo}</span>
@@ -117,7 +119,8 @@ export default function HomePage() {
         </section>
 
         <section id="como-funciona" className="mx-auto max-w-5xl px-6 py-16">
-          <h2 className="font-display text-2xl">Como funciona</h2>
+          <p className="page-kicker">Sem complicação</p>
+          <h2 className="mt-2 font-display text-2xl">Como funciona</h2>
           <ol className="mt-8 grid gap-10 md:grid-cols-3">
             {PASSOS.map((passo) => (
               <li key={passo.numero}>
@@ -130,7 +133,6 @@ export default function HomePage() {
         </section>
       </main>
 
-      <div className="airmail-stripe" />
       <footer className="mx-auto w-full max-w-5xl px-6 py-8 text-sm text-ink-soft">
         Roda local, na sua máquina, com o Claude Desktop.
       </footer>

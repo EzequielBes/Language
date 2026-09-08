@@ -1,6 +1,7 @@
-import Link from "next/link";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { LOCAL_USER_ID } from "@/lib/mcp/shared";
+import { getLocalUserId } from "@/lib/mcp/shared";
+import { DashboardHeader } from "../_components/dashboard-header";
+import { DashboardSection } from "../_components/dashboard-section";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export default async function ErrosPage() {
   const { data: eventos } = await db
     .from("correction_events")
     .select("id, skill_item_id, tipo_feedback, erro_do_aluno, correcao, criado_em, skill_items(texto)")
-    .eq("user_id", LOCAL_USER_ID)
+    .eq("user_id", getLocalUserId())
     .order("criado_em", { ascending: false })
     .limit(30);
 
@@ -46,20 +47,11 @@ export default async function ErrosPage() {
 
   return (
     <>
-      <div className="airmail-stripe" />
 
-      <header className="border-b border-line">
-        <div className="mx-auto flex max-w-2xl items-center justify-between px-6 py-5">
-          <Link href="/" className="font-display text-lg tracking-tight">
-            Correio
-          </Link>
-          <Link href="/dashboard" className="text-sm text-ink-soft hover:text-ink">
-            Meu painel
-          </Link>
-        </div>
-      </header>
+      <DashboardHeader current="/dashboard/erros" />
 
-      <main className="mx-auto max-w-2xl flex-1 px-6 py-16">
+      <main className="mx-auto max-w-4xl flex-1 px-6 py-16">
+        <p className="page-kicker">Aprendizado em movimento</p>
         <h1 className="font-display text-3xl">Diário de erros</h1>
         <p className="mt-4 max-w-lg text-ink-soft">
           Correções e dúvidas registradas pelo professor durante suas
@@ -67,36 +59,36 @@ export default async function ErrosPage() {
         </p>
 
         {maisRecorrentes.length > 0 && (
-          <section className="mt-10">
-            <p className="text-xs text-ink-soft">Mais recorrentes</p>
-            <ul className="mt-4 flex flex-wrap gap-3">
+          <DashboardSection label="Mais recorrentes">
+            <ul className="flex flex-wrap gap-3">
               {maisRecorrentes.map(([texto, count]) => (
                 <li key={texto} className="envelope-tag">
                   {texto} ({count}×)
                 </li>
               ))}
             </ul>
-          </section>
+          </DashboardSection>
         )}
 
-        <section className="mt-10">
-          <div className="flex items-baseline justify-between">
-            <p className="text-xs text-ink-soft">Histórico</p>
-            {lista.length > 0 && (
+        <DashboardSection
+          label="Histórico"
+          action={
+            lista.length > 0 && (
               <p className="text-xs text-ink-soft">
                 {lista.length} registro{lista.length === 1 ? "" : "s"}
               </p>
-            )}
-          </div>
+            )
+          }
+        >
           {lista.length === 0 ? (
-            <p className="mt-4 text-ink-soft">
+            <p className="text-ink-soft">
               Nenhuma correção registrada ainda — aparece aqui conforme você
               conversa com o Claude.
             </p>
           ) : (
-            <ul className="mt-4 divide-y divide-line border-y border-line">
+            <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-paper">
               {lista.map((e) => (
-                <li key={e.id} className="py-4">
+                <li key={e.id} className="px-3 py-4">
                   <div className="flex items-center gap-3">
                     <span className="envelope-tag">
                       {TIPO_FEEDBACK_LABEL[e.tipo_feedback] ?? e.tipo_feedback}
@@ -113,10 +105,9 @@ export default async function ErrosPage() {
               ))}
             </ul>
           )}
-        </section>
+        </DashboardSection>
       </main>
 
-      <div className="airmail-stripe" />
     </>
   );
 }

@@ -1,7 +1,8 @@
-import Link from "next/link";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { LOCAL_USER_ID } from "@/lib/mcp/shared";
+import { getLocalUserId } from "@/lib/mcp/shared";
 import { progressoDoMilestone } from "@/lib/study-plan/progress";
+import { DashboardHeader } from "../_components/dashboard-header";
+import { CopyPrompt } from "../_components/copy-prompt";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ export default async function PlanoPage() {
   const { data: plan } = await db
     .from("study_plans")
     .select("id, criado_em, study_plan_items(*)")
-    .eq("user_id", LOCAL_USER_ID)
+    .eq("user_id", getLocalUserId())
     .eq("status", "ativo")
     .maybeSingle();
 
@@ -44,20 +45,11 @@ export default async function PlanoPage() {
 
   return (
     <>
-      <div className="airmail-stripe" />
 
-      <header className="border-b border-line">
-        <div className="mx-auto flex max-w-2xl items-center justify-between px-6 py-5">
-          <Link href="/" className="font-display text-lg tracking-tight">
-            Correio
-          </Link>
-          <Link href="/dashboard" className="text-sm text-ink-soft hover:text-ink">
-            Meu painel
-          </Link>
-        </div>
-      </header>
+      <DashboardHeader current="/dashboard/plano" />
 
-      <main className="mx-auto max-w-2xl flex-1 px-6 py-16">
+      <main className="mx-auto max-w-4xl flex-1 px-6 py-16">
+        <p className="page-kicker">Pequenas entregas</p>
         <h1 className="font-display text-3xl">Plano de estudo</h1>
         <p className="mt-4 max-w-lg text-ink-soft">
           Sequência de metas geradas a partir do seu objetivo e nível atual.
@@ -65,10 +57,13 @@ export default async function PlanoPage() {
         </p>
 
         {!plan ? (
-          <p className="mt-8 text-ink-soft">
-            Nenhum plano ativo ainda. Peça ao Claude para gerar um plano de
-            estudo depois de definir seu objetivo e fazer uma avaliação.
-          </p>
+          <div className="mt-8">
+            <p className="quiet-card p-5 text-ink-soft">
+              Nenhum plano ativo ainda. Peça ao Claude para gerar um plano de
+              estudo depois de definir seu objetivo e fazer uma avaliação.
+            </p>
+            <CopyPrompt prompt="Gera um plano de estudo pra mim, considerando meu objetivo e nível atual." />
+          </div>
         ) : (
           <ol className="mt-8 space-y-5">
             {milestones.map((m) => {
@@ -82,7 +77,7 @@ export default async function PlanoPage() {
               return (
                 <li
                   key={m.id}
-                  className={`flex gap-4 border p-5 ${
+                  className={`flex gap-4 rounded-2xl border p-5 shadow-[var(--shadow)] ${
                     concluido ? "border-line bg-paper" : "border-line bg-paper-shade"
                   }`}
                 >
@@ -113,7 +108,7 @@ export default async function PlanoPage() {
                       )}
                       {m.progresso && m.progresso.total > 0 ? (
                         <div className="flex flex-1 items-center gap-2">
-                          <div className="h-1.5 flex-1 bg-line">
+                          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-line">
                             <div
                               className={concluido ? "h-full bg-ink-soft" : "h-full bg-stamp"}
                               style={{ width: `${pct}%` }}
@@ -135,7 +130,6 @@ export default async function PlanoPage() {
         )}
       </main>
 
-      <div className="airmail-stripe" />
     </>
   );
 }

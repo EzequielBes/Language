@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { LOCAL_USER_ID } from "@/lib/mcp/shared";
+import { getLocalUserId } from "@/lib/mcp/shared";
 import { orderUserItemStatusByPriority } from "@/lib/skill-items/rank";
+import { DashboardHeader } from "../_components/dashboard-header";
 import { FlashcardDeck, type Flashcard } from "./flashcard-deck";
 
 export const dynamic = "force-dynamic";
@@ -9,16 +9,16 @@ export const dynamic = "force-dynamic";
 export default async function FlashcardsPage() {
   const db = supabaseAdmin();
 
-  // ponytail: sem filtro por skill_items.idioma — hoje so existe dataset em
-  // 'en'. Filtrar por profiles.idioma_alvo quando houver mais de um idioma
-  // seedado.
+  // user_item_status ja e filtrado por user_id, que agora e por-idioma
+  // (lib/profile/active-profile.ts) — nao precisa filtrar skill_items.idioma
+  // separado, cada perfil de idioma so acumula status dos itens do seu idioma.
   const { data: rows } = await orderUserItemStatusByPriority(
     db
       .from("user_item_status")
       .select(
-        "skill_item_id, status, streak, ultima_revisao, skill_items(texto, tipo, nivel_cefr, prioridade)",
+        "skill_item_id, status, streak, ultima_revisao, skill_items(texto, tipo, nivel_cefr, prioridade, definicao)",
       )
-      .eq("user_id", LOCAL_USER_ID)
+      .eq("user_id", getLocalUserId())
       .neq("status", "conhecido"),
   ).limit(20);
 
@@ -26,7 +26,7 @@ export default async function FlashcardsPage() {
     skill_item_id: string;
     status: "aprendendo" | "desconhecido";
     streak: number;
-    skill_items: { texto: string; tipo: string; nivel_cefr: string } | null;
+    skill_items: { texto: string; tipo: string; nivel_cefr: string; definicao: string | null } | null;
   };
 
   const cards: Flashcard[] = ((rows ?? []) as unknown as Row[])
@@ -36,26 +36,18 @@ export default async function FlashcardsPage() {
       texto: row.skill_items!.texto,
       dominio: row.skill_items!.tipo,
       nivel: row.skill_items!.nivel_cefr,
+      definicao: row.skill_items!.definicao,
       status: row.status,
       streak: row.streak,
     }));
 
   return (
     <>
-      <div className="airmail-stripe" />
 
-      <header className="border-b border-line">
-        <div className="mx-auto flex max-w-2xl items-center justify-between px-6 py-5">
-          <Link href="/" className="font-display text-lg tracking-tight">
-            Correio
-          </Link>
-          <Link href="/dashboard" className="text-sm text-ink-soft hover:text-ink">
-            Meu painel
-          </Link>
-        </div>
-      </header>
+      <DashboardHeader current="/dashboard/flashcards" />
 
-      <main className="mx-auto max-w-2xl flex-1 px-6 py-16">
+      <main className="mx-auto max-w-4xl flex-1 px-6 py-16">
+        <p className="page-kicker">Revisão com calma</p>
         <h1 className="font-display text-3xl">Flashcards</h1>
         <p className="mt-4 max-w-lg text-ink-soft">
           Itens que você ainda está aprendendo ou não conhece, vindos das suas
@@ -65,7 +57,6 @@ export default async function FlashcardsPage() {
         <FlashcardDeck cards={cards} />
       </main>
 
-      <div className="airmail-stripe" />
     </>
   );
 }

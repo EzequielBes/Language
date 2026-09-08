@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { LOCAL_USER_ID } from "@/lib/mcp/shared";
+import { getLocalUserId } from "@/lib/mcp/shared";
+import { DashboardHeader } from "./_components/dashboard-header";
+import { DashboardSection } from "./_components/dashboard-section";
 
 // Sempre dados ao vivo do Supabase — nunca prerenderizar estatico no build.
 export const dynamic = "force-dynamic";
@@ -21,26 +23,54 @@ const OBJETIVOS: Record<string, string> = {
 
 export default async function DashboardPage() {
   const db = supabaseAdmin();
+  const userId = getLocalUserId();
 
-  const [{ data: profile }, { data: goal }, { data: itemStatuses }, { data: lastSession }] =
-    await Promise.all([
-      db.from("profiles").select("*").eq("user_id", LOCAL_USER_ID).maybeSingle(),
-      db
-        .from("goals")
-        .select("*")
-        .eq("user_id", LOCAL_USER_ID)
-        .order("criado_em", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      db.from("user_item_status").select("status").eq("user_id", LOCAL_USER_ID),
-      db
-        .from("assessment_sessions")
-        .select("*")
-        .eq("user_id", LOCAL_USER_ID)
-        .order("iniciado_em", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-    ]);
+  const [
+    { data: profile, error: profileError },
+    { data: goal, error: goalError },
+    { data: itemStatuses, error: itemStatusesError },
+    { data: lastSession, error: lastSessionError },
+    { count: revisoesVencidas, error: revisoesError },
+    { count: atividadesPendentes, error: atividadesError },
+  ] = await Promise.all([
+    db.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
+    db
+      .from("goals")
+      .select("*")
+      .eq("user_id", userId)
+      .order("criado_em", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    db.from("user_item_status").select("status").eq("user_id", userId),
+    db
+      .from("assessment_sessions")
+      .select("*")
+      .eq("user_id", userId)
+      .order("iniciado_em", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    db
+      .from("user_item_status")
+      .select("skill_item_id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .lte("proxima_revisao_em", new Date().toISOString()),
+    db
+      .from("activities")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("status", "pendente"),
+  ]);
+
+  for (const [label, error] of [
+    ["profile", profileError],
+    ["goal", goalError],
+    ["itemStatuses", itemStatusesError],
+    ["lastSession", lastSessionError],
+    ["revisoesVencidas", revisoesError],
+    ["atividadesPendentes", atividadesError],
+  ] as const) {
+    if (error) console.error(`[dashboard] ${label} query failed:`, error.message);
+  }
 
   const contagem = { conhecido: 0, aprendendo: 0, desconhecido: 0 };
   for (const row of itemStatuses ?? []) {
@@ -51,37 +81,11 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <div className="airmail-stripe" />
 
-      <header className="border-b border-line">
-        <div className="mx-auto flex max-w-2xl items-center justify-between px-6 py-5">
-          <Link href="/" className="font-display text-lg tracking-tight">
-            Correio
-          </Link>
-          <nav className="flex items-center gap-6 text-sm">
-            <Link href="/dashboard/cenarios" className="text-ink-soft hover:text-ink">
-              Cenários
-            </Link>
-            <Link href="/dashboard/flashcards" className="text-ink-soft hover:text-ink">
-              Flashcards
-            </Link>
-            <Link href="/dashboard/atividades" className="text-ink-soft hover:text-ink">
-              Atividades
-            </Link>
-            <Link href="/dashboard/plano" className="text-ink-soft hover:text-ink">
-              Plano
-            </Link>
-            <Link href="/dashboard/erros" className="text-ink-soft hover:text-ink">
-              Erros
-            </Link>
-            <Link href="/connect" className="text-ink-soft hover:text-ink">
-              Conectar ao Claude
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <DashboardHeader current="/dashboard" />
 
-      <main className="mx-auto max-w-2xl flex-1 px-6 py-16">
+      <main className="mx-auto max-w-4xl flex-1 px-6 py-16">
+        <p className="page-kicker">Seu cantinho de estudo</p>
         <h1 className="font-display text-3xl">Seu painel</h1>
 
         {!profile ? (
@@ -93,26 +97,53 @@ export default async function DashboardPage() {
             e comece uma conversa — o primeiro contato cria seu perfil.
           </p>
         ) : (
-          <div className="mt-10 space-y-12">
-            <section>
-              <p className="text-xs text-ink-soft">Objetivo</p>
-              <div className="mt-2">
-                {goal ? (
-                  <span className="envelope-tag">{OBJETIVOS[goal.tipo] ?? goal.tipo}</span>
-                ) : (
-                  <p className="text-ink-soft">Ainda não definido.</p>
-                )}
-              </div>
+          <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <DashboardSection label="Hoje" className="lg:col-span-2">
+              {(revisoesVencidas ?? 0) === 0 && (atividadesPendentes ?? 0) === 0 ? (
+                <p className="text-ink-soft">Tudo em dia — nada esperando revisão agora.</p>
+              ) : (
+                <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-paper">
+                  {(revisoesVencidas ?? 0) > 0 && (
+                    <li className="flex items-center justify-between px-3 py-3">
+                      <Link href="/dashboard/flashcards" className="hover:underline">
+                        {revisoesVencidas} revis{revisoesVencidas === 1 ? "ão" : "ões"} vencida
+                        {revisoesVencidas === 1 ? "" : "s"}
+                      </Link>
+                      <div className="postmark" data-filled={true} data-tone="stamp" style={{ "--size": "2rem" } as React.CSSProperties}>
+                        {revisoesVencidas}
+                      </div>
+                    </li>
+                  )}
+                  {(atividadesPendentes ?? 0) > 0 && (
+                    <li className="flex items-center justify-between px-3 py-3">
+                      <Link href="/dashboard/atividades" className="hover:underline">
+                        {atividadesPendentes} atividade{atividadesPendentes === 1 ? "" : "s"} esperando
+                        resposta
+                      </Link>
+                      <div className="postmark" style={{ "--size": "2rem" } as React.CSSProperties}>
+                        {atividadesPendentes}
+                      </div>
+                    </li>
+                  )}
+                </ul>
+              )}
+            </DashboardSection>
+
+            <DashboardSection label="Objetivo" className="">
+              {goal ? (
+                <span className="envelope-tag">{OBJETIVOS[goal.tipo] ?? goal.tipo}</span>
+              ) : (
+                <p className="text-ink-soft">Ainda não definido.</p>
+              )}
               {profile.nivel_autodeclarado && (
                 <p className="mt-3 text-sm text-ink-soft">
                   Nível declarado: {profile.nivel_autodeclarado}
                 </p>
               )}
-            </section>
+            </DashboardSection>
 
-            <section>
-              <p className="text-xs text-ink-soft">Nível avaliado por domínio</p>
-              <div className="mt-4 flex gap-6">
+            <DashboardSection label="Nível avaliado por domínio" className="">
+              <div className="flex gap-6">
                 {DOMINIOS.map((dominio) => {
                   const valor = nivelEstimado[dominio.chave];
                   return (
@@ -125,29 +156,27 @@ export default async function DashboardPage() {
                   );
                 })}
               </div>
-            </section>
+            </DashboardSection>
 
-            <section>
-              <p className="text-xs text-ink-soft">Itens estudados</p>
-              <dl className="mt-4 divide-y divide-line border-y border-line">
-                <div className="flex items-center justify-between py-3">
+            <DashboardSection label="Itens estudados" className="">
+              <dl className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-paper">
+                <div className="flex items-center justify-between px-3 py-3">
                   <dt className="text-correction">Conhecidos</dt>
                   <dd className="font-mono">{contagem.conhecido}</dd>
                 </div>
-                <div className="flex items-center justify-between py-3">
+                <div className="flex items-center justify-between px-3 py-3">
                   <dt className="text-ink-soft">Aprendendo</dt>
                   <dd className="font-mono">{contagem.aprendendo}</dd>
                 </div>
-                <div className="flex items-center justify-between py-3">
+                <div className="flex items-center justify-between px-3 py-3">
                   <dt className="text-ink-soft">Ainda não vistos</dt>
                   <dd className="font-mono">{contagem.desconhecido}</dd>
                 </div>
               </dl>
-            </section>
+            </DashboardSection>
 
-            <section>
-              <p className="text-xs text-ink-soft">Última avaliação</p>
-              <p className="mt-2">
+            <DashboardSection label="Última avaliação" className="">
+              <p>
                 {lastSession
                   ? lastSession.status === "concluida"
                     ? "Concluída"
@@ -156,12 +185,11 @@ export default async function DashboardPage() {
                       : "Abandonada"
                   : "Nenhuma ainda"}
               </p>
-            </section>
+            </DashboardSection>
           </div>
         )}
       </main>
 
-      <div className="airmail-stripe" />
     </>
   );
 }

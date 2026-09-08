@@ -1,7 +1,9 @@
-import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { LOCAL_USER_ID } from "@/lib/mcp/shared";
+import { getLocalUserId } from "@/lib/mcp/shared";
+import { DashboardHeader } from "../_components/dashboard-header";
+import { DashboardSection } from "../_components/dashboard-section";
+import { CopyPrompt } from "../_components/copy-prompt";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +26,7 @@ async function criarCenario(formData: FormData) {
   if (!titulo || !promptSeed) return;
 
   const { error } = await db.from("scenarios").insert({
-    user_id: LOCAL_USER_ID,
+    user_id: getLocalUserId(),
     titulo,
     prompt_seed: promptSeed,
     tipo_objetivo: tipoObjetivo || null,
@@ -51,20 +53,11 @@ export default async function CenariosPage() {
 
   return (
     <>
-      <div className="airmail-stripe" />
 
-      <header className="border-b border-line">
-        <div className="mx-auto flex max-w-2xl items-center justify-between px-6 py-5">
-          <Link href="/" className="font-display text-lg tracking-tight">
-            Correio
-          </Link>
-          <Link href="/dashboard" className="text-sm text-ink-soft hover:text-ink">
-            Meu painel
-          </Link>
-        </div>
-      </header>
+      <DashboardHeader current="/dashboard/cenarios" />
 
-      <main className="mx-auto max-w-2xl flex-1 px-6 py-16">
+      <main className="mx-auto max-w-4xl flex-1 px-6 py-16">
+        <p className="page-kicker">Uma conversa por vez</p>
         <h1 className="font-display text-3xl">Cenários de conversa</h1>
         <p className="mt-4 max-w-lg text-ink-soft">
           Escolha uma persona antes de conversar com o Claude — por texto ou
@@ -72,11 +65,10 @@ export default async function CenariosPage() {
           desses cenários no início da conversa.
         </p>
 
-        <section className="mt-10">
-          <p className="text-xs text-ink-soft">Predefinidos</p>
-          <ul className="mt-4 divide-y divide-line border-y border-line">
+        <DashboardSection label="Predefinidos">
+          <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-paper">
             {predefinidos.map((cenario) => (
-              <li key={cenario.id} className="py-4">
+              <li key={cenario.id} className="px-3 py-4">
                 <div className="flex items-center gap-3">
                   <span className="envelope-tag">
                     {OBJETIVOS[cenario.tipo_objetivo ?? ""] ?? "Geral"}
@@ -84,19 +76,19 @@ export default async function CenariosPage() {
                   <span className="font-medium">{cenario.titulo}</span>
                 </div>
                 <p className="mt-2 text-sm text-ink-soft">{cenario.prompt_seed}</p>
+                <CopyPrompt prompt={`Vamos fazer o cenário "${cenario.titulo}" agora.`} />
               </li>
             ))}
           </ul>
-        </section>
+        </DashboardSection>
 
-        <section className="mt-10">
-          <p className="text-xs text-ink-soft">Seus cenários</p>
+        <DashboardSection label="Seus cenários">
           {personalizados.length === 0 ? (
-            <p className="mt-4 text-ink-soft">Nenhum ainda — crie um abaixo.</p>
+            <p className="text-ink-soft">Nenhum ainda — crie um abaixo.</p>
           ) : (
-            <ul className="mt-4 divide-y divide-line border-y border-line">
+            <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-paper">
               {personalizados.map((cenario) => (
-                <li key={cenario.id} className="py-4">
+                <li key={cenario.id} className="px-3 py-4">
                   <div className="flex items-center gap-3">
                     <span className="envelope-tag">
                       {OBJETIVOS[cenario.tipo_objetivo ?? ""] ?? "Geral"}
@@ -104,15 +96,15 @@ export default async function CenariosPage() {
                     <span className="font-medium">{cenario.titulo}</span>
                   </div>
                   <p className="mt-2 text-sm text-ink-soft">{cenario.prompt_seed}</p>
+                  <CopyPrompt prompt={`Vamos fazer o cenário "${cenario.titulo}" agora.`} />
                 </li>
               ))}
             </ul>
           )}
-        </section>
+        </DashboardSection>
 
-        <section className="mt-12">
-          <p className="text-xs text-ink-soft">Criar cenário</p>
-          <form action={criarCenario} className="mt-4 space-y-4">
+        <DashboardSection label="Criar cenário" className="mt-12">
+          <form action={criarCenario} className="space-y-4">
             <div>
               <label htmlFor="titulo" className="block text-sm">
                 Título
@@ -122,7 +114,7 @@ export default async function CenariosPage() {
                 name="titulo"
                 required
                 maxLength={120}
-                className="mt-1 w-full border border-line bg-paper px-3 py-2 text-sm"
+                className="field-control mt-1 w-full"
               />
             </div>
             <div>
@@ -132,7 +124,7 @@ export default async function CenariosPage() {
               <select
                 id="tipo_objetivo"
                 name="tipo_objetivo"
-                className="mt-1 w-full border border-line bg-paper px-3 py-2 text-sm"
+                className="field-control mt-1 w-full"
                 defaultValue=""
               >
                 <option value="">Geral</option>
@@ -154,20 +146,19 @@ export default async function CenariosPage() {
                 maxLength={2000}
                 rows={4}
                 placeholder="Ex: Você é um recrutador técnico entrevistando para uma vaga de suporte ao cliente..."
-                className="mt-1 w-full border border-line bg-paper px-3 py-2 text-sm"
+                className="field-control mt-1 w-full"
               />
             </div>
             <button
               type="submit"
-              className="border border-ink bg-ink px-5 py-2.5 text-sm text-paper hover:bg-stamp hover:border-stamp"
+              className="button-primary"
             >
               Criar cenário
             </button>
           </form>
-        </section>
+        </DashboardSection>
       </main>
 
-      <div className="airmail-stripe" />
     </>
   );
 }
