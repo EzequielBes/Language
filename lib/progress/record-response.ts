@@ -7,7 +7,10 @@ import {
   type Domain,
   type ItemStatus,
 } from "@/lib/assessment/adaptive";
-import { calcularProximaRevisao } from "@/lib/assessment/spaced-repetition";
+import {
+  calcularProximaRevisao,
+  FATOR_FACILIDADE_INICIAL,
+} from "@/lib/assessment/spaced-repetition";
 
 export interface RecordPracticeResponseResult {
   itemStatus: "conhecido" | "aprendendo" | "desconhecido";
@@ -46,7 +49,7 @@ export async function recordPracticeResponse(
       .single(),
     db
       .from("user_item_status")
-      .select("streak")
+      .select("streak, fator_facilidade, intervalo_dias")
       .eq("user_id", userId)
       .eq("skill_item_id", skillItemId)
       .maybeSingle(),
@@ -74,8 +77,12 @@ export async function recordPracticeResponse(
         ? "aprendendo"
         : "desconhecido";
 
-  const { streak, proximaRevisaoEm } = calcularProximaRevisao(
-    itemAtual?.streak ?? 0,
+  const { streak, fatorFacilidade, intervaloDias, proximaRevisaoEm } = calcularProximaRevisao(
+    {
+      streak: itemAtual?.streak ?? 0,
+      fatorFacilidade: itemAtual?.fator_facilidade ?? FATOR_FACILIDADE_INICIAL,
+      intervaloDias: itemAtual?.intervalo_dias ?? 0,
+    },
     resultado,
   );
 
@@ -85,6 +92,8 @@ export async function recordPracticeResponse(
     status: itemStatus,
     ultima_revisao: new Date().toISOString(),
     streak,
+    fator_facilidade: fatorFacilidade,
+    intervalo_dias: intervaloDias,
     proxima_revisao_em: proximaRevisaoEm.toISOString(),
   });
   if (statusError) fail(statusError);

@@ -160,6 +160,7 @@ supabase/migrations/0003_activities.sql
 supabase/migrations/0004_coaching_plans_and_pacing.sql
 supabase/migrations/0005_schema_hardening.sql
 supabase/migrations/0006_skill_item_meanings.sql
+supabase/migrations/0007_spaced_repetition_sm2.sql
 
 supabase/seed/skill_items_en.sql
 supabase/seed/skill_items_meanings.sql
@@ -270,5 +271,6 @@ dados. O carimbo circular de nível CEFR é a assinatura visual da marca; ver
   os apps mobile, porque exigiriam voltar a expor um servidor remoto com
   OAuth.
 - Dataset de conteúdo hoje só cobre **inglês** (~54 itens semeados).
-- Repetição espaçada é um degrau simples (Leitner-like), não o algoritmo
-  FSRS completo.
+- Repetição espaçada usa SM-2-lite (fator de facilidade por item, ajustado a
+  cada resposta), não o modelo estatístico completo do FSRS — que otimizaria
+  os parâmetros automaticamente por aluno em vez de usar constantes fixas.

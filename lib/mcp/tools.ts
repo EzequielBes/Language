@@ -11,7 +11,10 @@ import {
   type Domain,
   type ItemStatus,
 } from "@/lib/assessment/adaptive";
-import { calcularProximaRevisao } from "@/lib/assessment/spaced-repetition";
+import {
+  calcularProximaRevisao,
+  FATOR_FACILIDADE_INICIAL,
+} from "@/lib/assessment/spaced-repetition";
 import { orderSkillItemsByPriority } from "@/lib/skill-items/rank";
 
 async function pickItem(
@@ -281,7 +284,7 @@ export function registerTools(server: McpServer) {
         db.from("skill_items").select("tipo").eq("id", args.skill_item_id).single(),
         db
           .from("user_item_status")
-          .select("streak")
+          .select("streak, fator_facilidade, intervalo_dias")
           .eq("user_id", getLocalUserId())
           .eq("skill_item_id", args.skill_item_id)
           .maybeSingle(),
@@ -312,8 +315,12 @@ export function registerTools(server: McpServer) {
           : args.status === "parcial"
             ? "aprendendo"
             : "desconhecido";
-      const { streak, proximaRevisaoEm } = calcularProximaRevisao(
-        itemAtual?.streak ?? 0,
+      const { streak, fatorFacilidade, intervaloDias, proximaRevisaoEm } = calcularProximaRevisao(
+        {
+          streak: itemAtual?.streak ?? 0,
+          fatorFacilidade: itemAtual?.fator_facilidade ?? FATOR_FACILIDADE_INICIAL,
+          intervaloDias: itemAtual?.intervalo_dias ?? 0,
+        },
         args.status as ItemStatus,
       );
       await db.from("user_item_status").upsert({
@@ -322,6 +329,8 @@ export function registerTools(server: McpServer) {
         status: itemStatus,
         ultima_revisao: new Date().toISOString(),
         streak,
+        fator_facilidade: fatorFacilidade,
+        intervalo_dias: intervaloDias,
         proxima_revisao_em: proximaRevisaoEm.toISOString(),
       });
 
