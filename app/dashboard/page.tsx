@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { getLocalUserId } from "@/lib/mcp/shared";
+import { getHeaderData } from "@/lib/profile/header-data";
 import { DashboardHeader } from "./_components/dashboard-header";
 import { DashboardSection } from "./_components/dashboard-section";
 
@@ -32,6 +33,7 @@ export default async function DashboardPage() {
     { data: lastSession, error: lastSessionError },
     { count: revisoesVencidas, error: revisoesError },
     { count: atividadesPendentes, error: atividadesError },
+    headerData,
   ] = await Promise.all([
     db.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
     db
@@ -59,6 +61,7 @@ export default async function DashboardPage() {
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
       .eq("status", "pendente"),
+    getHeaderData(db),
   ]);
 
   for (const [label, error] of [
@@ -82,7 +85,7 @@ export default async function DashboardPage() {
   return (
     <>
 
-      <DashboardHeader current="/dashboard" />
+      <DashboardHeader current="/dashboard" {...headerData} />
 
       <main className="mx-auto max-w-4xl flex-1 px-6 py-16">
         <p className="page-kicker">Seu cantinho de estudo</p>

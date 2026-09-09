@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { getLocalUserId } from "@/lib/mcp/shared";
 import { progressoDoMilestone } from "@/lib/study-plan/progress";
+import { getHeaderData } from "@/lib/profile/header-data";
 import { DashboardHeader } from "../_components/dashboard-header";
 import { CopyPrompt } from "../_components/copy-prompt";
 
@@ -25,12 +26,15 @@ interface MilestoneRow {
 export default async function PlanoPage() {
   const db = supabaseAdmin();
 
-  const { data: plan } = await db
-    .from("study_plans")
-    .select("id, criado_em, study_plan_items(*)")
-    .eq("user_id", getLocalUserId())
-    .eq("status", "ativo")
-    .maybeSingle();
+  const [{ data: plan }, headerData] = await Promise.all([
+    db
+      .from("study_plans")
+      .select("id, criado_em, study_plan_items(*)")
+      .eq("user_id", getLocalUserId())
+      .eq("status", "ativo")
+      .maybeSingle(),
+    getHeaderData(db),
+  ]);
 
   const items = (
     (plan as unknown as { study_plan_items: MilestoneRow[] } | null)?.study_plan_items ?? []
@@ -46,7 +50,7 @@ export default async function PlanoPage() {
   return (
     <>
 
-      <DashboardHeader current="/dashboard/plano" />
+      <DashboardHeader current="/dashboard/plano" {...headerData} />
 
       <main className="mx-auto max-w-4xl flex-1 px-6 py-16">
         <p className="page-kicker">Pequenas entregas</p>

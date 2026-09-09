@@ -64,12 +64,6 @@ export async function recordPracticeResponse(
 
   const novoEstado = applyResponse(estadoAtual, domain, resultado);
 
-  const { error: updateError } = await db
-    .from("profiles")
-    .update({ nivel_pratica: novoEstado })
-    .eq("user_id", userId);
-  if (updateError) fail(updateError);
-
   const itemStatus =
     resultado === "conhecido"
       ? "conhecido"
@@ -86,16 +80,24 @@ export async function recordPracticeResponse(
     resultado,
   );
 
-  const { error: statusError } = await db.from("user_item_status").upsert({
-    user_id: userId,
-    skill_item_id: skillItemId,
-    status: itemStatus,
-    ultima_revisao: new Date().toISOString(),
-    streak,
-    fator_facilidade: fatorFacilidade,
-    intervalo_dias: intervaloDias,
-    proxima_revisao_em: proximaRevisaoEm.toISOString(),
-  });
+  // As duas escritas sao independentes (nenhuma le o resultado da outra) —
+  // rodam em paralelo em vez de round-trips sequenciais. E o mutation mais
+  // frequente do app (toda revisao de flashcard, resposta de atividade,
+  // item praticado em conversa, correcao vinculada a um item).
+  const [{ error: updateError }, { error: statusError }] = await Promise.all([
+    db.from("profiles").update({ nivel_pratica: novoEstado }).eq("user_id", userId),
+    db.from("user_item_status").upsert({
+      user_id: userId,
+      skill_item_id: skillItemId,
+      status: itemStatus,
+      ultima_revisao: new Date().toISOString(),
+      streak,
+      fator_facilidade: fatorFacilidade,
+      intervalo_dias: intervaloDias,
+      proxima_revisao_em: proximaRevisaoEm.toISOString(),
+    }),
+  ]);
+  if (updateError) fail(updateError);
   if (statusError) fail(statusError);
 
   return {

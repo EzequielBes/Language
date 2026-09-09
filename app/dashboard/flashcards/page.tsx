@@ -1,7 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { getLocalUserId } from "@/lib/mcp/shared";
-import { getActiveLanguage } from "@/lib/profile/active-profile";
 import { orderUserItemStatusByPriority } from "@/lib/skill-items/rank";
+import { getHeaderData } from "@/lib/profile/header-data";
 import { DashboardHeader } from "../_components/dashboard-header";
 import { FlashcardDeck, type Flashcard } from "./flashcard-deck";
 
@@ -13,15 +13,18 @@ export default async function FlashcardsPage() {
   // user_item_status ja e filtrado por user_id, que agora e por-idioma
   // (lib/profile/active-profile.ts) — nao precisa filtrar skill_items.idioma
   // separado, cada perfil de idioma so acumula status dos itens do seu idioma.
-  const { data: rows } = await orderUserItemStatusByPriority(
-    db
-      .from("user_item_status")
-      .select(
-        "skill_item_id, status, streak, ultima_revisao, skill_items(texto, tipo, nivel_cefr, prioridade, definicao)",
-      )
-      .eq("user_id", getLocalUserId())
-      .neq("status", "conhecido"),
-  ).limit(20);
+  const [{ data: rows }, headerData] = await Promise.all([
+    orderUserItemStatusByPriority(
+      db
+        .from("user_item_status")
+        .select(
+          "skill_item_id, status, streak, ultima_revisao, skill_items(texto, tipo, nivel_cefr, prioridade, definicao)",
+        )
+        .eq("user_id", getLocalUserId())
+        .neq("status", "conhecido"),
+    ).limit(20),
+    getHeaderData(db),
+  ]);
 
   type Row = {
     skill_item_id: string;
@@ -45,7 +48,7 @@ export default async function FlashcardsPage() {
   return (
     <>
 
-      <DashboardHeader current="/dashboard/flashcards" />
+      <DashboardHeader current="/dashboard/flashcards" {...headerData} />
 
       <main className="mx-auto max-w-4xl flex-1 px-6 py-16">
         <p className="page-kicker">Revisão com calma</p>
@@ -55,7 +58,7 @@ export default async function FlashcardsPage() {
           avaliações e conversas. Toque no cartão pra avaliar se você lembrou.
         </p>
 
-        <FlashcardDeck cards={cards} idioma={getActiveLanguage()} />
+        <FlashcardDeck cards={cards} idioma={headerData.ativo} />
       </main>
 
     </>

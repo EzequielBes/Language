@@ -2,8 +2,9 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { LayoutDashboard, MessageCircle, Layers, ListChecks, Map, NotebookPen, Mail, BookOpen } from "lucide-react";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { DEFAULT_LANGUAGE, IDIOMA_RE, getActiveLanguage, setActiveLanguage } from "@/lib/profile/active-profile";
-import { ensureLanguageProfile, listLanguageProfiles } from "@/lib/profile/language-profiles";
+import { IDIOMA_RE, setActiveLanguage } from "@/lib/profile/active-profile";
+import { ensureLanguageProfile } from "@/lib/profile/language-profiles";
+import type { HeaderData } from "@/lib/profile/header-data";
 import { LanguageSwitcher } from "./language-switcher";
 
 const NAV_ITEMS = [
@@ -39,11 +40,13 @@ async function criarIdioma(formData: FormData) {
   revalidatePath("/dashboard", "layout");
 }
 
-export async function DashboardHeader({ current }: { current: (typeof NAV_ITEMS)[number]["href"] }) {
-  const perfis = await listLanguageProfiles(supabaseAdmin()).catch(() => []);
-  const idiomas = perfis.length > 0 ? perfis.map((p) => p.idioma_alvo ?? DEFAULT_LANGUAGE) : [DEFAULT_LANGUAGE];
-  const ativo = getActiveLanguage();
-
+export function DashboardHeader({
+  current,
+  idiomas,
+  ativo,
+}: {
+  current: (typeof NAV_ITEMS)[number]["href"];
+} & HeaderData) {
   return (
     <header className="border-b border-line">
       <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-6 py-4 sm:py-5">

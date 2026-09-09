@@ -1,9 +1,5 @@
 import Link from "next/link";
 
-// process.cwd() precisa refletir onde o projeto roda de verdade, nao o
-// diretorio do build.
-export const dynamic = "force-dynamic";
-
 const PASSOS = [
   "Instale o Claude Desktop, se ainda não tiver.",
   "Abra o arquivo de configuração abaixo (crie se não existir).",

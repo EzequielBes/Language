@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { getLocalUserId } from "@/lib/mcp/shared";
 import { listScenarios } from "@/lib/scenarios/list";
 import { validateCenarioInput } from "@/lib/scenarios/validate";
+import { getHeaderData } from "@/lib/profile/header-data";
 import { DashboardHeader } from "../_components/dashboard-header";
 import { DashboardSection } from "../_components/dashboard-section";
 import { CopyPrompt } from "../_components/copy-prompt";
@@ -48,12 +49,15 @@ async function criarCenario(formData: FormData) {
 
 export default async function CenariosPage() {
   const db = supabaseAdmin();
-  const { predefinidos, personalizados } = await listScenarios(db, getLocalUserId());
+  const [{ predefinidos, personalizados }, headerData] = await Promise.all([
+    listScenarios(db, getLocalUserId()),
+    getHeaderData(db),
+  ]);
 
   return (
     <>
 
-      <DashboardHeader current="/dashboard/cenarios" />
+      <DashboardHeader current="/dashboard/cenarios" {...headerData} />
 
       <main className="mx-auto max-w-4xl flex-1 px-6 py-16">
         <p className="page-kicker">Uma conversa por vez</p>

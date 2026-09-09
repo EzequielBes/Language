@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { getLocalUserId } from "@/lib/mcp/shared";
+import { getHeaderData } from "@/lib/profile/header-data";
 import { DashboardHeader } from "../_components/dashboard-header";
 import { DashboardSection } from "../_components/dashboard-section";
 
@@ -17,12 +18,15 @@ const TIPO_FEEDBACK_LABEL: Record<string, string> = {
 export default async function ErrosPage() {
   const db = supabaseAdmin();
 
-  const { data: eventos } = await db
-    .from("correction_events")
-    .select("id, skill_item_id, tipo_feedback, erro_do_aluno, correcao, criado_em, skill_items(texto)")
-    .eq("user_id", getLocalUserId())
-    .order("criado_em", { ascending: false })
-    .limit(30);
+  const [{ data: eventos }, headerData] = await Promise.all([
+    db
+      .from("correction_events")
+      .select("id, skill_item_id, tipo_feedback, erro_do_aluno, correcao, criado_em, skill_items(texto)")
+      .eq("user_id", getLocalUserId())
+      .order("criado_em", { ascending: false })
+      .limit(30),
+    getHeaderData(db),
+  ]);
 
   type EventoRow = {
     id: string;
@@ -48,7 +52,7 @@ export default async function ErrosPage() {
   return (
     <>
 
-      <DashboardHeader current="/dashboard/erros" />
+      <DashboardHeader current="/dashboard/erros" {...headerData} />
 
       <main className="mx-auto max-w-4xl flex-1 px-6 py-16">
         <p className="page-kicker">Aprendizado em movimento</p>

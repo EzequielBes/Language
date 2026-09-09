@@ -296,19 +296,6 @@ export function registerTools(server: McpServer) {
       const estadoAtual = session.estado_adaptativo as ReturnType<typeof seedState>;
       const novoEstado = applyResponse(estadoAtual, domain, args.status as ItemStatus);
 
-      const { error: updateError } = await db
-        .from("assessment_sessions")
-        .update({
-          estado_adaptativo: novoEstado,
-          itens_respondidos: session.itens_respondidos + 1,
-          itens_ids_respondidos: [
-            ...(session.itens_ids_respondidos ?? []),
-            args.skill_item_id,
-          ],
-        })
-        .eq("id", sessionId);
-      if (updateError) dbFail(updateError);
-
       const itemStatus =
         args.status === "conhecido"
           ? "conhecido"
@@ -323,16 +310,32 @@ export function registerTools(server: McpServer) {
         },
         args.status as ItemStatus,
       );
-      await db.from("user_item_status").upsert({
-        user_id: getLocalUserId(),
-        skill_item_id: args.skill_item_id,
-        status: itemStatus,
-        ultima_revisao: new Date().toISOString(),
-        streak,
-        fator_facilidade: fatorFacilidade,
-        intervalo_dias: intervaloDias,
-        proxima_revisao_em: proximaRevisaoEm.toISOString(),
-      });
+
+      // Escritas independentes (nenhuma le o resultado da outra) — paralelas.
+      const [{ error: updateError }] = await Promise.all([
+        db
+          .from("assessment_sessions")
+          .update({
+            estado_adaptativo: novoEstado,
+            itens_respondidos: session.itens_respondidos + 1,
+            itens_ids_respondidos: [
+              ...(session.itens_ids_respondidos ?? []),
+              args.skill_item_id,
+            ],
+          })
+          .eq("id", sessionId),
+        db.from("user_item_status").upsert({
+          user_id: getLocalUserId(),
+          skill_item_id: args.skill_item_id,
+          status: itemStatus,
+          ultima_revisao: new Date().toISOString(),
+          streak,
+          fator_facilidade: fatorFacilidade,
+          intervalo_dias: intervaloDias,
+          proxima_revisao_em: proximaRevisaoEm.toISOString(),
+        }),
+      ]);
+      if (updateError) dbFail(updateError);
 
       return json({
         dominio: domain,
@@ -367,19 +370,21 @@ export function registerTools(server: McpServer) {
         (Object.keys(estado) as Domain[]).map((d) => [d, numberToCefr(estado[d].nivel)]),
       );
 
-      await db
-        .from("assessment_sessions")
-        .update({
-          status: "concluida",
-          finalizado_em: new Date().toISOString(),
-          nivel_resultante_estimado: nivelEstimado,
-        })
-        .eq("id", sessionId);
-
-      await db
-        .from("profiles")
-        .update({ nivel_estimado: nivelEstimado, onboarding_status: "avaliado" })
-        .eq("user_id", getLocalUserId());
+      // Escritas independentes (nenhuma le o resultado da outra) — paralelas.
+      await Promise.all([
+        db
+          .from("assessment_sessions")
+          .update({
+            status: "concluida",
+            finalizado_em: new Date().toISOString(),
+            nivel_resultante_estimado: nivelEstimado,
+          })
+          .eq("id", sessionId),
+        db
+          .from("profiles")
+          .update({ nivel_estimado: nivelEstimado, onboarding_status: "avaliado" })
+          .eq("user_id", getLocalUserId()),
+      ]);
 
       return json({ nivel_estimado: nivelEstimado });
     },

@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { getLocalUserId } from "@/lib/mcp/shared";
-import { itensParaCsv, type VocabularioItem } from "@/lib/vocabulario/export";
+import { type VocabularioItem } from "@/lib/vocabulario/export";
+import { getHeaderData } from "@/lib/profile/header-data";
 import { DashboardHeader } from "../_components/dashboard-header";
 import { DashboardSection } from "../_components/dashboard-section";
 
@@ -19,11 +20,14 @@ type Row = {
 export default async function VocabularioPage() {
   const db = supabaseAdmin();
 
-  const { data: rows } = await db
-    .from("user_item_status")
-    .select("skill_items(texto, tipo, nivel_cefr, definicao)")
-    .eq("user_id", getLocalUserId())
-    .eq("status", "conhecido");
+  const [{ data: rows }, headerData] = await Promise.all([
+    db
+      .from("user_item_status")
+      .select("skill_items(texto, tipo, nivel_cefr, definicao)")
+      .eq("user_id", getLocalUserId())
+      .eq("status", "conhecido"),
+    getHeaderData(db),
+  ]);
 
   const itens: VocabularioItem[] = ((rows ?? []) as unknown as Row[])
     .filter((row) => row.skill_items !== null)
@@ -42,11 +46,9 @@ export default async function VocabularioPage() {
     porDominio.set(item.dominio, lista);
   }
 
-  const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(itensParaCsv(itens))}`;
-
   return (
     <>
-      <DashboardHeader current="/dashboard/vocabulario" />
+      <DashboardHeader current="/dashboard/vocabulario" {...headerData} />
 
       <main className="mx-auto max-w-4xl flex-1 px-6 py-16">
         <p className="page-kicker">O que já é seu</p>
@@ -60,7 +62,7 @@ export default async function VocabularioPage() {
           label="Itens dominados"
           action={
             itens.length > 0 && (
-              <a href={csvHref} download="meu-vocabulario.csv" className="text-xs underline">
+              <a href="/api/vocabulario/export" download="meu-vocabulario.csv" className="text-xs underline">
                 Baixar CSV
               </a>
             )

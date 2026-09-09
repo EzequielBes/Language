@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { getLocalUserId } from "@/lib/mcp/shared";
 import { gerarAtividadesPendentes } from "@/lib/activities/generate";
 import { GENERATORS } from "@/lib/activities/registry";
+import { getHeaderData } from "@/lib/profile/header-data";
 import { DashboardHeader } from "../_components/dashboard-header";
 import { ActivityCard, type Atividade } from "./activity-card";
 
@@ -17,12 +18,15 @@ async function gerarAtividades() {
 export default async function AtividadesPage() {
   const db = supabaseAdmin();
 
-  const { data: pendentes } = await db
-    .from("activities")
-    .select("id, tipo, dominio, nivel_cefr, payload")
-    .eq("user_id", getLocalUserId())
-    .eq("status", "pendente")
-    .order("criado_em", { ascending: true });
+  const [{ data: pendentes }, headerData] = await Promise.all([
+    db
+      .from("activities")
+      .select("id, tipo, dominio, nivel_cefr, payload")
+      .eq("user_id", getLocalUserId())
+      .eq("status", "pendente")
+      .order("criado_em", { ascending: true }),
+    getHeaderData(db),
+  ]);
 
   const atividades: Atividade[] = (pendentes ?? [])
     .map((a) => {
@@ -38,7 +42,7 @@ export default async function AtividadesPage() {
   return (
     <>
 
-      <DashboardHeader current="/dashboard/atividades" />
+      <DashboardHeader current="/dashboard/atividades" {...headerData} />
 
       <main className="mx-auto max-w-4xl flex-1 px-6 py-16">
         <p className="page-kicker">Prática de poucos minutos</p>
