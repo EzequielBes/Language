@@ -19,7 +19,6 @@ export function AchievementToast({
 }) {
   const [indice, setIndice] = useState(0);
 
-  // Reset carousel when achievements list changes
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIndice(0);
