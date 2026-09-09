@@ -1,0 +1,14 @@
+#!/bin/sh
+# Enforces Conventional Commits (see CONTRIBUTING.md).
+msg_file="$1"
+first_line=$(head -n1 "$msg_file")
+
+pattern='^(feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert)(\([a-z0-9./-]+\))?!?: .{1,100}$'
+
+if ! echo "$first_line" | grep -qE "$pattern"; then
+  echo "Commit rejeitado: mensagem fora do padrao Conventional Commits." >&2
+  echo "  Exemplo: feat(flashcards): add pronunciation button" >&2
+  echo "  Tipos aceitos: feat fix docs style refactor perf test chore build ci revert" >&2
+  echo "  Sua mensagem: $first_line" >&2
+  exit 1
+fi
