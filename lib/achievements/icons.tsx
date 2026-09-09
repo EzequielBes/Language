@@ -1,0 +1,32 @@
+import {
+  Sparkles,
+  BookOpen,
+  Award,
+  Trophy,
+  CheckCircle2,
+  MessageCircle,
+  ClipboardCheck,
+  Map,
+  Hammer,
+  Zap,
+  Users,
+  Flag,
+  PartyPopper,
+  type LucideIcon,
+} from "lucide-react";
+
+export const ACHIEVEMENT_ICONS: Record<string, LucideIcon> = {
+  Sparkles,
+  BookOpen,
+  Award,
+  Trophy,
+  CheckCircle2,
+  MessageCircle,
+  ClipboardCheck,
+  Map,
+  Hammer,
+  Zap,
+  Users,
+  Flag,
+  PartyPopper,
+};

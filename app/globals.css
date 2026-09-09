@@ -143,6 +143,29 @@ button {
   }
 }
 
+/* Toast de selo desbloqueado: aparece no canto ao completar um flashcard ou
+   atividade que cruza um marco — uma vez por selo, nao decoracao continua. */
+@keyframes achievement-toast-in {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.achievement-toast {
+  animation: achievement-toast-in 260ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .achievement-toast {
+    animation: none;
+  }
+}
+
 /* Etiqueta neutra: rótulo minimal pra domínio/objetivo/status — pílula com
    fundo levemente destacado do card, sem borda. */
 .envelope-tag {
