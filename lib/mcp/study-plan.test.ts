@@ -85,4 +85,26 @@ describe("mcp/study-plan (integracao real contra Supabase)", () => {
       .single();
     expect(planAntigo?.status).toBe("abandonado");
   });
+
+  it("dado um plano com todas as metas concluidas, quando a ultima e avancada, entao desbloqueia plano_completo", async () => {
+    const gerado = parseToolResult<{ plan_id: string; milestones: { id: string }[] }>(
+      await handlers.get("generate_study_plan")!({}),
+    );
+    const { data: itens } = await db
+      .from("study_plan_items")
+      .select("id")
+      .eq("study_plan_id", gerado.plan_id);
+
+    for (const item of itens!) {
+      await handlers.get("advance_study_plan_milestone")!({ study_plan_item_id: item.id });
+    }
+
+    const { data: unlocked } = await db
+      .from("user_achievements")
+      .select("achievement_chave")
+      .eq("user_id", TEST_USER_ID)
+      .eq("achievement_chave", "plano_completo")
+      .maybeSingle();
+    expect(unlocked?.achievement_chave).toBe("plano_completo");
+  });
 });

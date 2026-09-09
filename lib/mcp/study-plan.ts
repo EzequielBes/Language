@@ -154,11 +154,24 @@ export function registerStudyPlanTools(server: McpServer) {
     },
     async (args) => {
       const db = supabaseAdmin();
-      const { error } = await db
+      const { data: item, error } = await db
         .from("study_plan_items")
         .update({ status: "concluido", concluido_em: new Date().toISOString() })
-        .eq("id", args.study_plan_item_id);
+        .eq("id", args.study_plan_item_id)
+        .select("study_plan_id")
+        .single();
       if (error) dbFail(error);
+
+      const { count: pendentes } = await db
+        .from("study_plan_items")
+        .select("id", { count: "exact", head: true })
+        .eq("study_plan_id", item.study_plan_id)
+        .neq("status", "concluido");
+
+      if ((pendentes ?? 0) === 0) {
+        await unlockOnce(db, getLocalUserId(), "plano_completo");
+      }
+
       return json({ ok: true });
     },
   );

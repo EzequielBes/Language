@@ -107,3 +107,42 @@ describe("mcp/scenarios (integracao real contra Supabase)", () => {
     ).rejects.toThrow();
   });
 });
+
+describe("finish_conversation_session desbloqueia selo de consistencia", () => {
+  const { server, handlers } = createTestMcpServer();
+  registerScenarioTools(server);
+
+  // O describe acima ja apagou o profile de TEST_USER_ID no seu afterAll;
+  // recria aqui para que conversation_sessions.user_id (FK -> profiles) valide.
+  beforeAll(async () => {
+    await db.from("profiles").insert({ user_id: TEST_USER_ID });
+  });
+
+  afterAll(async () => {
+    await db.from("conversation_sessions").delete().eq("user_id", TEST_USER_ID);
+    await db.from("user_achievements").delete().eq("user_id", TEST_USER_ID);
+    await db.from("profiles").delete().eq("user_id", TEST_USER_ID);
+  });
+
+  it("dado 4 conversas ja concluidas, quando a quinta e finalizada, entao desbloqueia conversas_5", async () => {
+    await db.from("conversation_sessions").insert(
+      Array.from({ length: 4 }, () => ({ user_id: TEST_USER_ID, finalizado_em: new Date().toISOString() })),
+    );
+
+    const { data: quinta } = await db
+      .from("conversation_sessions")
+      .insert({ user_id: TEST_USER_ID })
+      .select("id")
+      .single();
+
+    await handlers.get("finish_conversation_session")!({ session_id: quinta!.id });
+
+    const { data: unlocked } = await db
+      .from("user_achievements")
+      .select("achievement_chave")
+      .eq("user_id", TEST_USER_ID)
+      .eq("achievement_chave", "conversas_5")
+      .maybeSingle();
+    expect(unlocked?.achievement_chave).toBe("conversas_5");
+  });
+});

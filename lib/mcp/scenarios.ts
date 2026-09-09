@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { dbFail, json, getLocalUserId } from "@/lib/mcp/shared";
 import { recordPracticeResponse } from "@/lib/progress/record-response";
 import type { Domain } from "@/lib/assessment/adaptive";
-import { unlockOnce } from "@/lib/achievements/unlock";
+import { unlockOnce, checkThresholds } from "@/lib/achievements/unlock";
 
 const TIPO_OBJETIVO = z.enum([
   "trabalho",
@@ -212,6 +212,8 @@ export function registerScenarioTools(server: McpServer) {
         .eq("id", args.session_id)
         .eq("user_id", getLocalUserId());
       if (error) dbFail(error);
+
+      await checkThresholds(db, getLocalUserId(), "conversas_concluidas");
 
       return json({ ok: true });
     },
