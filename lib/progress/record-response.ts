@@ -11,10 +11,13 @@ import {
   calcularProximaRevisao,
   FATOR_FACILIDADE_INICIAL,
 } from "@/lib/assessment/spaced-repetition";
+import { checkThresholds } from "@/lib/achievements/unlock";
+import type { Achievement } from "@/lib/achievements/types";
 
 export interface RecordPracticeResponseResult {
   itemStatus: "conhecido" | "aprendendo" | "desconhecido";
   nivelPraticaAtualizado: Cefr;
+  newlyUnlocked: Achievement[];
 }
 
 function fail(error: { message: string }): never {
@@ -100,8 +103,11 @@ export async function recordPracticeResponse(
   if (updateError) fail(updateError);
   if (statusError) fail(statusError);
 
+  const newlyUnlocked = await checkThresholds(db, userId, "vocabulario_dominado");
+
   return {
     itemStatus,
     nivelPraticaAtualizado: numberToCefr(novoEstado[domain].nivel),
+    newlyUnlocked,
   };
 }
