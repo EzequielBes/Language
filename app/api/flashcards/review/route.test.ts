@@ -35,6 +35,12 @@ describe("POST /api/flashcards/review (integracao real contra Supabase)", () => 
     await db.from("profiles").delete().eq("user_id", TEST_USER_ID);
   });
 
+  it("dado o primeiro flashcard revisado por este usuario, entao a resposta inclui o selo primeiro_flashcard", async () => {
+    const res = await POST(req({ skill_item_id: skillItemId, resultado: "conhecido" }));
+    const body = await res.json();
+    expect(body.newlyUnlocked.some((a: { chave: string }) => a.chave === "primeiro_flashcard")).toBe(true);
+  });
+
   it("registra a resposta e retorna o novo status do item", async () => {
     const res = await POST(req({ skill_item_id: skillItemId, resultado: "conhecido" }));
     expect(res.status).toBe(200);

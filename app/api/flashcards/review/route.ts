@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { getLocalUserId } from "@/lib/mcp/shared";
 import { isSameOrigin } from "@/lib/http/same-origin";
 import { recordPracticeResponse } from "@/lib/progress/record-response";
+import { unlockOnce } from "@/lib/achievements/unlock";
 import type { Domain } from "@/lib/assessment/adaptive";
 
 const bodySchema = z.object({
@@ -38,5 +39,10 @@ export async function POST(request: Request) {
     resultado: parsed.data.resultado,
   });
 
-  return NextResponse.json(resultado);
+  const primeiroFlashcard = await unlockOnce(db, getLocalUserId(), "primeiro_flashcard");
+  const newlyUnlocked = primeiroFlashcard
+    ? [...resultado.newlyUnlocked, primeiroFlashcard]
+    : resultado.newlyUnlocked;
+
+  return NextResponse.json({ ...resultado, newlyUnlocked });
 }
