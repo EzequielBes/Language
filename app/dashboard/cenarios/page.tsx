@@ -1,6 +1,8 @@
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { getLocalUserId } from "@/lib/mcp/shared";
+import { listScenarios } from "@/lib/scenarios/list";
+import { validateCenarioInput } from "@/lib/scenarios/validate";
 import { DashboardHeader } from "../_components/dashboard-header";
 import { DashboardSection } from "../_components/dashboard-section";
 import { CopyPrompt } from "../_components/copy-prompt";
@@ -19,16 +21,21 @@ async function criarCenario(formData: FormData) {
   "use server";
   const db = supabaseAdmin();
 
-  const titulo = String(formData.get("titulo") ?? "").trim();
-  const promptSeed = String(formData.get("prompt_seed") ?? "").trim();
   const tipoObjetivo = String(formData.get("tipo_objetivo") ?? "");
 
-  if (!titulo || !promptSeed) return;
+  const validado = validateCenarioInput({
+    titulo: String(formData.get("titulo") ?? ""),
+    promptSeed: String(formData.get("prompt_seed") ?? ""),
+  });
+  if (!validado.ok) {
+    console.error("[dashboard/cenarios] entrada invalida:", validado.error);
+    return;
+  }
 
   const { error } = await db.from("scenarios").insert({
     user_id: getLocalUserId(),
-    titulo,
-    prompt_seed: promptSeed,
+    titulo: validado.titulo,
+    prompt_seed: validado.promptSeed,
     tipo_objetivo: tipoObjetivo || null,
   });
   if (error) {
@@ -41,15 +48,7 @@ async function criarCenario(formData: FormData) {
 
 export default async function CenariosPage() {
   const db = supabaseAdmin();
-
-  const { data: cenarios } = await db
-    .from("scenarios")
-    .select("id, titulo, prompt_seed, tipo_objetivo, predefinido")
-    .order("predefinido", { ascending: false })
-    .order("criado_em", { ascending: false });
-
-  const predefinidos = (cenarios ?? []).filter((c) => c.predefinido);
-  const personalizados = (cenarios ?? []).filter((c) => !c.predefinido);
+  const { predefinidos, personalizados } = await listScenarios(db, getLocalUserId());
 
   return (
     <>

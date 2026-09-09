@@ -171,6 +171,7 @@ supabase/migrations/0004_coaching_plans_and_pacing.sql
 supabase/migrations/0005_schema_hardening.sql
 supabase/migrations/0006_skill_item_meanings.sql
 supabase/migrations/0007_spaced_repetition_sm2.sql
+supabase/migrations/0008_scenarios_hardening.sql
 
 supabase/seed/skill_items_en.sql
 supabase/seed/skill_items_meanings.sql
