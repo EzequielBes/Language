@@ -100,4 +100,21 @@ describe("POST /api/activities/[id]/respond (integracao real contra Supabase)", 
     const res = await POST(req({ resposta: 1 }), params("00000000-0000-0000-0000-000000000000"));
     expect(res.status).toBe(404);
   });
+
+  it("dado 9 atividades ja concluidas, quando a decima e respondida, entao a resposta inclui o selo atividades_10", async () => {
+    await db.from("activities").insert(
+      Array.from({ length: 9 }, () => ({
+        user_id: TEST_USER_ID,
+        tipo: "multiple_choice",
+        dominio,
+        nivel_cefr: nivelCefr,
+        payload: {},
+        status: "concluida",
+      })),
+    );
+
+    const res = await POST(req({ resposta: 1 }), params(activityId));
+    const body = await res.json();
+    expect(body.newlyUnlocked.some((a: { chave: string }) => a.chave === "atividades_10")).toBe(true);
+  });
 });

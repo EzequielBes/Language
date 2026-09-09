@@ -4,7 +4,9 @@ import { getLocalUserId } from "@/lib/mcp/shared";
 import { isSameOrigin } from "@/lib/http/same-origin";
 import { GENERATORS } from "@/lib/activities/registry";
 import { recordPracticeResponse } from "@/lib/progress/record-response";
+import { checkThresholds } from "@/lib/achievements/unlock";
 import type { Domain } from "@/lib/assessment/adaptive";
+import type { Achievement } from "@/lib/achievements/types";
 
 export async function POST(
   request: Request,
@@ -58,17 +60,20 @@ export async function POST(
     .update({ status: "concluida", concluida_em: new Date().toISOString() })
     .eq("id", activity.id);
 
+  const newlyUnlocked: Achievement[] = [];
   // ponytail: assume que todos os itens de origem pertencem ao dominio da
   // atividade — vale enquanto so houver geradores de 1 item por atividade
   // (adaptar quando um gerador cobrir mais de um dominio por vez).
   for (const skillItemId of activity.fonte_skill_item_ids ?? []) {
-    await recordPracticeResponse(db, {
+    const registro = await recordPracticeResponse(db, {
       userId: getLocalUserId(),
       skillItemId,
       domain: activity.dominio as Domain,
       resultado: resultado.correta ? "conhecido" : "desconhecido",
     });
+    newlyUnlocked.push(...registro.newlyUnlocked);
   }
+  newlyUnlocked.push(...(await checkThresholds(db, getLocalUserId(), "atividades_respondidas")));
 
-  return NextResponse.json(resultado);
+  return NextResponse.json({ ...resultado, newlyUnlocked });
 }
