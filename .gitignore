@@ -47,3 +47,7 @@ next-env.d.ts
 # idioma ativo do perfil local (multi-perfil estilo Duolingo) — estado de
 # maquina, nao de projeto
 /.local-profile.json
+
+# scratch de execucao do subagent-driven-development (ledger, briefs,
+# reports) — nao e artefato do projeto, o historico do git e o registro
+.superpowers/
