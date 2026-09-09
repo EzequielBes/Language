@@ -89,6 +89,7 @@ describe("mcp/scenarios (integracao real contra Supabase)", () => {
       }),
     );
     expect(resultado.itemStatus).toBe("conhecido");
+    expect(resultado).not.toHaveProperty("newlyUnlocked");
 
     const finalizado = parseToolResult<{ ok: boolean }>(
       await handlers.get("finish_conversation_session")!({

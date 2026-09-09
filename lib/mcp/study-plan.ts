@@ -162,14 +162,22 @@ export function registerStudyPlanTools(server: McpServer) {
         .single();
       if (error) dbFail(error);
 
-      const { count: pendentes } = await db
-        .from("study_plan_items")
-        .select("id", { count: "exact", head: true })
-        .eq("study_plan_id", item.study_plan_id)
-        .neq("status", "concluido");
+      const { data: plan } = await db
+        .from("study_plans")
+        .select("user_id")
+        .eq("id", item.study_plan_id)
+        .single();
 
-      if ((pendentes ?? 0) === 0) {
-        await unlockOnce(db, getLocalUserId(), "plano_completo");
+      if (plan?.user_id === getLocalUserId()) {
+        const { count: pendentes } = await db
+          .from("study_plan_items")
+          .select("id", { count: "exact", head: true })
+          .eq("study_plan_id", item.study_plan_id)
+          .neq("status", "concluido");
+
+        if ((pendentes ?? 0) === 0) {
+          await unlockOnce(db, getLocalUserId(), "plano_completo");
+        }
       }
 
       return json({ ok: true });

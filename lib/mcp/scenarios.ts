@@ -185,7 +185,7 @@ export function registerScenarioTools(server: McpServer) {
         resultado: args.resultado,
       });
 
-      return json(resultado);
+      return json({ itemStatus: resultado.itemStatus, nivelPraticaAtualizado: resultado.nivelPraticaAtualizado });
     },
   );
 

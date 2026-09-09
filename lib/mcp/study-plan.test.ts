@@ -95,8 +95,18 @@ describe("mcp/study-plan (integracao real contra Supabase)", () => {
       .select("id")
       .eq("study_plan_id", gerado.plan_id);
 
-    for (const item of itens!) {
+    for (const [index, item] of itens!.entries()) {
       await handlers.get("advance_study_plan_milestone")!({ study_plan_item_id: item.id });
+
+      if (index === 0 && itens!.length > 1) {
+        const { data: aindaNao } = await db
+          .from("user_achievements")
+          .select("achievement_chave")
+          .eq("user_id", TEST_USER_ID)
+          .eq("achievement_chave", "plano_completo")
+          .maybeSingle();
+        expect(aindaNao).toBeNull();
+      }
     }
 
     const { data: unlocked } = await db

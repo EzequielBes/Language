@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { unlockOnce, checkThresholds } from "./unlock";
+import type { Metrica } from "./types";
 
 const db = supabaseAdmin();
 
@@ -109,5 +110,26 @@ describe("isolamento entre perfis", () => {
         .maybeSingle();
       expect(data).toBeNull();
     });
+  });
+});
+
+describe("nunca lanca excecao mesmo em erro real de banco", () => {
+  it("dado um user_id que viola a FK de user_achievements, quando unlockOnce e chamado, entao retorna null sem lancar", async () => {
+    await expect(unlockOnce(db, "usuario-que-nao-existe-nunca", "vocab_10")).resolves.toBeNull();
+  });
+
+  // A contagem em si (CONTADORES[metrica]) nao falha para um user_id
+  // inexistente — so retorna 0 (nenhum erro de banco). Como nenhum
+  // achievement de vocabulario_dominado tem limite <= 0 (o menor e 10),
+  // checkThresholds retornaria [] pelo caminho normal nesse caso, sem
+  // nunca tocar o catch. Para exercitar de verdade o catch de
+  // checkThresholds (nao so o de unlockOnce, que ja e coberto acima e no
+  // describe "checkThresholds"), forcamos um erro real e sincrono passando
+  // uma metrica que nao existe em CONTADORES — o lookup falha com uma
+  // excecao de verdade antes de qualquer query.
+  it("dado uma metrica sem contador registrado, quando checkThresholds e chamado, entao retorna array vazio sem lancar", async () => {
+    await expect(
+      checkThresholds(db, "usuario-que-nao-existe-nunca", "metrica_sem_contador" as Metrica),
+    ).resolves.toEqual([]);
   });
 });

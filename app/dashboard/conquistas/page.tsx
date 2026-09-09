@@ -32,7 +32,7 @@ export default async function ConquistasPage() {
     (desbloqueadas ?? []).map((d) => [d.achievement_chave, d.desbloqueado_em as string]),
   );
 
-  const metricas: Metrica[] = ["vocabulario_dominado", "atividades_respondidas", "conversas_concluidas"];
+  const metricas = Object.keys(CONTADORES) as Metrica[];
   const contagensPorMetrica = Object.fromEntries(
     await Promise.all(metricas.map(async (m) => [m, await CONTADORES[m](db, userId)] as const)),
   ) as Record<Metrica, number>;
