@@ -35,9 +35,9 @@ describe("funcoes de contagem de progresso", () => {
   describe("dado 2 atividades concluidas e 1 pendente", () => {
     it("quando contarAtividadesRespondidas e chamado, entao retorna 2", async () => {
       await db.from("activities").insert([
-        { user_id: TEST_USER, tipo: "multiple_choice", payload: {}, status: "concluida" },
-        { user_id: TEST_USER, tipo: "multiple_choice", payload: {}, status: "concluida" },
-        { user_id: TEST_USER, tipo: "multiple_choice", payload: {}, status: "pendente" },
+        { user_id: TEST_USER, tipo: "multiple_choice", dominio: "vocabulario", nivel_cefr: "A1", payload: {}, status: "concluida" },
+        { user_id: TEST_USER, tipo: "multiple_choice", dominio: "vocabulario", nivel_cefr: "A1", payload: {}, status: "concluida" },
+        { user_id: TEST_USER, tipo: "multiple_choice", dominio: "vocabulario", nivel_cefr: "A1", payload: {}, status: "pendente" },
       ]);
       expect(await contarAtividadesRespondidas(db, TEST_USER)).toBe(2);
     });
