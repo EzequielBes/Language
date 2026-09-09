@@ -172,12 +172,14 @@ supabase/migrations/0005_schema_hardening.sql
 supabase/migrations/0006_skill_item_meanings.sql
 supabase/migrations/0007_spaced_repetition_sm2.sql
 supabase/migrations/0008_scenarios_hardening.sql
+supabase/migrations/0009_achievements.sql
 
 supabase/seed/skill_items_en.sql
 supabase/seed/skill_items_meanings.sql
 supabase/seed/scenarios.sql
 supabase/seed/scenarios_fase4.sql
 supabase/seed/activity_types.sql
+supabase/seed/achievements.sql
 ```
 
 ### 4. Configurar variáveis de ambiente
