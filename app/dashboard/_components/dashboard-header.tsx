@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
-import { LayoutDashboard, MessageCircle, Layers, ListChecks, Map, NotebookPen, Mail, BookOpen } from "lucide-react";
+import { LayoutDashboard, MessageCircle, Layers, ListChecks, Map, NotebookPen, Mail, BookOpen, Medal } from "lucide-react";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { IDIOMA_RE, setActiveLanguage } from "@/lib/profile/active-profile";
 import { ensureLanguageProfile } from "@/lib/profile/language-profiles";
@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { href: "/dashboard/flashcards", label: "Flashcards", Icon: Layers },
   { href: "/dashboard/atividades", label: "Atividades", Icon: ListChecks },
   { href: "/dashboard/vocabulario", label: "Vocabulário", Icon: BookOpen },
+  { href: "/dashboard/conquistas", label: "Conquistas", Icon: Medal },
   { href: "/dashboard/plano", label: "Plano", Icon: Map },
   { href: "/dashboard/erros", label: "Erros", Icon: NotebookPen },
 ] as const;
