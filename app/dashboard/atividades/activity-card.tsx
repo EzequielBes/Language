@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AchievementToast, type ToastAchievement } from "../_components/achievement-toast";
 
 type Payload =
   | { pergunta: string; opcoes: string[] }
@@ -24,6 +25,7 @@ export function ActivityCard({ atividade }: { atividade: Atividade }) {
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState<"correta" | "errada" | null>(null);
   const [texto, setTexto] = useState("");
+  const [newlyUnlocked, setNewlyUnlocked] = useState<ToastAchievement[]>([]);
 
   async function responder(resposta: number | string) {
     if (resultado || enviando) return;
@@ -36,6 +38,9 @@ export function ActivityCard({ atividade }: { atividade: Atividade }) {
       });
       const data = await res.json();
       setResultado(data.correta ? "correta" : "errada");
+      if (data.newlyUnlocked?.length > 0) {
+        setNewlyUnlocked((prev) => [...prev, ...data.newlyUnlocked]);
+      }
     } finally {
       setEnviando(false);
     }
@@ -116,6 +121,8 @@ export function ActivityCard({ atividade }: { atividade: Atividade }) {
           {resultado === "correta" ? "Certo!" : "Não foi dessa vez."}
         </p>
       )}
+
+      <AchievementToast achievements={newlyUnlocked} onDone={() => setNewlyUnlocked([])} />
     </div>
   );
 }

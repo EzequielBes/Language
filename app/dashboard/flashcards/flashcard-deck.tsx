@@ -4,6 +4,7 @@ import { useState } from "react";
 import { PartyPopper } from "lucide-react";
 import { INTERVALOS_DIAS } from "@/lib/assessment/spaced-repetition";
 import { PronounceButton } from "../_components/pronounce-button";
+import { AchievementToast, type ToastAchievement } from "../_components/achievement-toast";
 
 export interface Flashcard {
   skillItemId: string;
@@ -51,6 +52,7 @@ export function FlashcardDeck({ cards, idioma }: { cards: Flashcard[]; idioma: s
   const [virado, setVirado] = useState(false);
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [saindo, setSaindo] = useState(false);
+  const [newlyUnlocked, setNewlyUnlocked] = useState<ToastAchievement[]>([]);
 
   if (fila.length === 0) {
     return (
@@ -70,11 +72,20 @@ export function FlashcardDeck({ cards, idioma }: { cards: Flashcard[]; idioma: s
   async function responder(escolha: Resultado) {
     if (respondendo) return;
     setResultado(escolha);
-    fetch("/api/flashcards/review", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ skill_item_id: atual.skillItemId, resultado: escolha }),
-    }).catch(() => {});
+    try {
+      const res = await fetch("/api/flashcards/review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ skill_item_id: atual.skillItemId, resultado: escolha }),
+      });
+      const data = await res.json();
+      if (data.newlyUnlocked?.length > 0) {
+        setNewlyUnlocked((prev) => [...prev, ...data.newlyUnlocked]);
+      }
+    } catch {
+      // silencioso: a revisao em si ja foi tentada, um selo perdido aqui
+      // nao deve travar a experiencia do flashcard.
+    }
 
     window.setTimeout(() => setSaindo(true), 420);
     window.setTimeout(() => {
@@ -177,6 +188,8 @@ export function FlashcardDeck({ cards, idioma }: { cards: Flashcard[]; idioma: s
           </div>
         )}
       </div>
+
+      <AchievementToast achievements={newlyUnlocked} onDone={() => setNewlyUnlocked([])} />
     </div>
   );
 }
