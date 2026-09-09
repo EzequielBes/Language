@@ -87,6 +87,14 @@ describe("mcp/tools (integracao real contra Supabase)", () => {
       ["expressao", "gramatica", "vocabulario"].sort(),
     );
 
+    const { data: unlockedAvaliacao } = await db
+      .from("user_achievements")
+      .select("achievement_chave")
+      .eq("user_id", TEST_USER_ID)
+      .eq("achievement_chave", "primeira_avaliacao")
+      .maybeSingle();
+    expect(unlockedAvaliacao?.achievement_chave).toBe("primeira_avaliacao");
+
     const resumo = parseToolResult<{
       profile: { onboarding_status: string };
       ultima_sessao: { status: string };

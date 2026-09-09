@@ -41,6 +41,14 @@ describe("mcp/study-plan (integracao real contra Supabase)", () => {
     expect(plan_id).toBeTruthy();
     expect(milestones.length).toBeGreaterThan(0);
     expect(milestones[0]!.ordem).toBe(1);
+
+    const { data: unlockedPlano } = await db
+      .from("user_achievements")
+      .select("achievement_chave")
+      .eq("user_id", TEST_USER_ID)
+      .eq("achievement_chave", "primeiro_plano")
+      .maybeSingle();
+    expect(unlockedPlano?.achievement_chave).toBe("primeiro_plano");
   });
 
   it("busca o plano ativo com progresso calculado por meta, e avanca uma meta", async () => {

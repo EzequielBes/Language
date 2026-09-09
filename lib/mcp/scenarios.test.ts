@@ -59,6 +59,14 @@ describe("mcp/scenarios (integracao real contra Supabase)", () => {
     );
     expect(session_id).toBeTruthy();
     expect(briefing).toContain("recrutador tecnico");
+
+    const { data: unlocked } = await db
+      .from("user_achievements")
+      .select("achievement_chave")
+      .eq("user_id", TEST_USER_ID)
+      .eq("achievement_chave", "primeira_conversa")
+      .maybeSingle();
+    expect(unlocked?.achievement_chave).toBe("primeira_conversa");
   });
 
   it("monta um briefing generico quando nao ha scenario_id nem objetivo definido", async () => {

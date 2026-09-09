@@ -16,6 +16,7 @@ import {
   FATOR_FACILIDADE_INICIAL,
 } from "@/lib/assessment/spaced-repetition";
 import { orderSkillItemsByPriority } from "@/lib/skill-items/rank";
+import { unlockOnce } from "@/lib/achievements/unlock";
 
 async function pickItem(
   db: ReturnType<typeof supabaseAdmin>,
@@ -385,6 +386,8 @@ export function registerTools(server: McpServer) {
           .update({ nivel_estimado: nivelEstimado, onboarding_status: "avaliado" })
           .eq("user_id", getLocalUserId()),
       ]);
+
+      await unlockOnce(db, getLocalUserId(), "primeira_avaliacao");
 
       return json({ nivel_estimado: nivelEstimado });
     },

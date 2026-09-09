@@ -7,6 +7,7 @@ import type { TipoObjetivo } from "@/lib/study-plan/can-do-catalog";
 import { progressoDoMilestone } from "@/lib/study-plan/progress";
 import type { Domain } from "@/lib/assessment/adaptive";
 import { numberToCefr, type Cefr } from "@/lib/cefr";
+import { unlockOnce } from "@/lib/achievements/unlock";
 
 interface StudyPlanItemRow {
   id: string;
@@ -102,6 +103,8 @@ export function registerStudyPlanTools(server: McpServer) {
         })),
       );
       if (itemsError) dbFail(itemsError);
+
+      await unlockOnce(db, getLocalUserId(), "primeiro_plano");
 
       return json({ plan_id: plan.id, milestones });
     },

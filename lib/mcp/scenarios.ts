@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { dbFail, json, getLocalUserId } from "@/lib/mcp/shared";
 import { recordPracticeResponse } from "@/lib/progress/record-response";
 import type { Domain } from "@/lib/assessment/adaptive";
+import { unlockOnce } from "@/lib/achievements/unlock";
 
 const TIPO_OBJETIVO = z.enum([
   "trabalho",
@@ -129,6 +130,8 @@ export function registerScenarioTools(server: McpServer) {
         .select("id")
         .single();
       if (sessionError) dbFail(sessionError);
+
+      await unlockOnce(db, getLocalUserId(), "primeira_conversa");
 
       return json({ session_id: session.id, briefing });
     },
