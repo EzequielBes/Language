@@ -36,6 +36,8 @@ function formatarData(iso: string): string {
   return `${dia}/${mes}`;
 }
 
+// historico deve vir ordenado por data ascendente (garantido pela query em
+// app/dashboard/page.tsx) — o componente nao reordena.
 export function ProgressChart({ historico }: { historico: PontoProgressao[] }) {
   if (historico.length < 2) {
     return <p className="text-ink-soft">Ainda sem histórico suficiente.</p>;
@@ -43,6 +45,13 @@ export function ProgressChart({ historico }: { historico: PontoProgressao[] }) {
 
   return (
     <div>
+      <p className="sr-only">
+        {SERIES.map((serie) => {
+          const primeiro = numberToCefr(historico[0][serie.chave]);
+          const ultimo = numberToCefr(historico[historico.length - 1][serie.chave]);
+          return `${serie.rotulo}: ${primeiro} → ${ultimo}. `;
+        }).join("")}
+      </p>
       <svg
         viewBox={`0 0 ${LARGURA} ${ALTURA}`}
         role="img"
