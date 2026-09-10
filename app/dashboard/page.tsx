@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Flame } from "lucide-react";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { getLocalUserId } from "@/lib/mcp/shared";
 import { getHeaderData } from "@/lib/profile/header-data";
@@ -33,6 +34,7 @@ export default async function DashboardPage() {
     { data: lastSession, error: lastSessionError },
     { count: revisoesVencidas, error: revisoesError },
     { count: atividadesPendentes, error: atividadesError },
+    { data: streak, error: streakError },
     headerData,
   ] = await Promise.all([
     db.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
@@ -61,6 +63,11 @@ export default async function DashboardPage() {
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
       .eq("status", "pendente"),
+    db
+      .from("streak_estado")
+      .select("dias_atual, dias_recorde")
+      .eq("singleton", true)
+      .maybeSingle(),
     getHeaderData(db),
   ]);
 
@@ -71,6 +78,7 @@ export default async function DashboardPage() {
     ["lastSession", lastSessionError],
     ["revisoesVencidas", revisoesError],
     ["atividadesPendentes", atividadesError],
+    ["streak", streakError],
   ] as const) {
     if (error) console.error(`[dashboard] ${label} query failed:`, error.message);
   }
@@ -81,6 +89,9 @@ export default async function DashboardPage() {
   }
 
   const nivelEstimado = (profile?.nivel_estimado ?? {}) as Record<string, string>;
+
+  const diasAtual = streak?.dias_atual ?? 0;
+  const diasRecorde = streak?.dias_recorde ?? 0;
 
   return (
     <>
@@ -130,6 +141,26 @@ export default async function DashboardPage() {
                   )}
                 </ul>
               )}
+            </DashboardSection>
+
+            <DashboardSection label="Sequência" className="">
+              <div className="flex items-center gap-3">
+                <Flame
+                  size={28}
+                  strokeWidth={1.75}
+                  className={diasAtual > 0 ? "text-stamp" : "text-ink-soft"}
+                  aria-hidden="true"
+                />
+                <div>
+                  <p className="font-display text-2xl">
+                    {diasAtual} dia{diasAtual === 1 ? "" : "s"}
+                  </p>
+                  <p className="text-xs text-ink-soft">seguido{diasAtual === 1 ? "" : "s"}</p>
+                </div>
+              </div>
+              <p className="mt-3 text-sm text-ink-soft">
+                Recorde: {diasRecorde} dia{diasRecorde === 1 ? "" : "s"}
+              </p>
             </DashboardSection>
 
             <DashboardSection label="Objetivo" className="">
