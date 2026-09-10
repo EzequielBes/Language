@@ -82,4 +82,12 @@ describe("registrarProgressaoDiaria", () => {
       ).resolves.toBeUndefined();
     });
   });
+
+  describe("dado um nivel fora da faixa 1-6 (viola o CHECK constraint)", () => {
+    it("quando registrarProgressaoDiaria e chamado, entao nao lanca excecao", async () => {
+      await expect(
+        registrarProgressaoDiaria(db, TEST_USER, estadoComNiveis(0, 1, 1)),
+      ).resolves.toBeUndefined();
+    });
+  });
 });
