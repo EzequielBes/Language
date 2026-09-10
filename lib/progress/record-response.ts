@@ -14,6 +14,7 @@ import {
 import { checkThresholds } from "@/lib/achievements/unlock";
 import type { Achievement } from "@/lib/achievements/types";
 import { atualizarStreak } from "@/lib/streak/update";
+import { registrarProgressaoDiaria } from "@/lib/progressao/historico";
 
 export interface RecordPracticeResponseResult {
   itemStatus: "conhecido" | "aprendendo" | "desconhecido";
@@ -104,11 +105,13 @@ export async function recordPracticeResponse(
   if (updateError) fail(updateError);
   if (statusError) fail(statusError);
 
-  // As duas chamadas sao independentes (nenhuma depende da outra) — rodam
-  // em paralelo, mesmo padrao ja usado nas duas escritas acima.
+  // As tres chamadas sao independentes (nenhuma depende do resultado das
+  // outras) — rodam em paralelo, mesmo padrao ja usado nas duas escritas
+  // acima.
   const [newlyUnlocked] = await Promise.all([
     checkThresholds(db, userId, "vocabulario_dominado"),
     atualizarStreak(db),
+    registrarProgressaoDiaria(db, userId, novoEstado),
   ]);
 
   return {
