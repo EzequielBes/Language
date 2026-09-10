@@ -152,6 +152,10 @@ export default async function DashboardPage() {
               )}
             </DashboardSection>
 
+            <DashboardSection label="Progressão" className="lg:col-span-2">
+              <ProgressChart historico={progressaoHistorico} />
+            </DashboardSection>
+
             <DashboardSection label="Sequência" className="">
               <div className="flex items-center gap-3">
                 <Flame
@@ -170,10 +174,6 @@ export default async function DashboardPage() {
               <p className="mt-3 text-sm text-ink-soft">
                 Recorde: {diasRecorde} dia{diasRecorde === 1 ? "" : "s"}
               </p>
-            </DashboardSection>
-
-            <DashboardSection label="Progressão" className="lg:col-span-2">
-              <ProgressChart historico={progressaoHistorico} />
             </DashboardSection>
 
             <DashboardSection label="Objetivo" className="">

@@ -84,10 +84,19 @@ describe("registrarProgressaoDiaria", () => {
   });
 
   describe("dado um nivel fora da faixa 1-6 (viola o CHECK constraint)", () => {
-    it("quando registrarProgressaoDiaria e chamado, entao nao lanca excecao", async () => {
+    it("quando registrarProgressaoDiaria e chamado, entao nao lanca excecao e nao corrompe a linha", async () => {
       await expect(
         registrarProgressaoDiaria(db, TEST_USER, estadoComNiveis(0, 1, 1)),
       ).resolves.toBeUndefined();
+
+      // A escrita invalida deve ter sido rejeitada pelo CHECK constraint —
+      // a linha deve permanecer com os valores do ultimo write valido acima.
+      const linha = await lerHoje();
+      expect(linha).toEqual({
+        nivel_vocabulario: 5,
+        nivel_gramatica: 3,
+        nivel_expressao: 6,
+      });
     });
   });
 });

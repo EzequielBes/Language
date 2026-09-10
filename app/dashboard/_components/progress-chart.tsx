@@ -20,10 +20,13 @@ const SERIES = [
   { chave: "nivel_expressao", cor: "var(--stamp)", rotulo: "Expressão" },
 ] as const;
 
-function x(indice: number, total: number): number {
-  if (total <= 1) return PAD_ESQUERDA;
+function x(ponto: PontoProgressao, primeiro: PontoProgressao, ultimo: PontoProgressao): number {
+  const inicio = Date.parse(primeiro.data);
+  const fim = Date.parse(ultimo.data);
   const larguraUtil = LARGURA - PAD_ESQUERDA - PAD_DIREITA;
-  return PAD_ESQUERDA + (indice / (total - 1)) * larguraUtil;
+  const duracao = fim - inicio;
+  if (duracao <= 0) return PAD_ESQUERDA;
+  return PAD_ESQUERDA + ((Date.parse(ponto.data) - inicio) / duracao) * larguraUtil;
 }
 
 function y(nivel: number): number {
@@ -80,7 +83,10 @@ export function ProgressChart({ historico }: { historico: PontoProgressao[] }) {
             stroke={serie.cor}
             strokeWidth={2}
             points={historico
-              .map((ponto, indice) => `${x(indice, historico.length)},${y(ponto[serie.chave])}`)
+              .map(
+                (ponto) =>
+                  `${x(ponto, historico[0], historico[historico.length - 1])},${y(ponto[serie.chave])}`,
+              )
               .join(" ")}
           />
         ))}
