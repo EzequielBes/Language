@@ -27,7 +27,7 @@ async function definirEstado(estado: Partial<StreakRow>) {
 function diasAtras(n: number): string {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+  return d.toLocaleDateString("en-CA");
 }
 
 describe("atualizarStreak", () => {
@@ -78,6 +78,17 @@ describe("atualizarStreak", () => {
   describe("dado que perdeu um dia sem freeze disponivel", () => {
     it("quando atualiza, entao zera a sequencia mas mantem o recorde", async () => {
       await definirEstado({ dias_atual: 10, dias_recorde: 10, ultimo_dia_praticado: diasAtras(2), freezes_disponiveis: 0 });
+      await atualizarStreak(db);
+      const estado = await lerEstado();
+      expect(estado.dias_atual).toBe(1);
+      expect(estado.freezes_disponiveis).toBe(0);
+      expect(estado.dias_recorde).toBe(10);
+    });
+  });
+
+  describe("dado que perdeu mais dias do que os freezes disponiveis cobrem", () => {
+    it("quando atualiza, entao zera a sequencia e os freezes, mas mantem o recorde", async () => {
+      await definirEstado({ dias_atual: 10, dias_recorde: 10, ultimo_dia_praticado: diasAtras(4), freezes_disponiveis: 1 });
       await atualizarStreak(db);
       const estado = await lerEstado();
       expect(estado.dias_atual).toBe(1);
