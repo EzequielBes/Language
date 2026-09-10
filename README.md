@@ -175,6 +175,7 @@ supabase/migrations/0008_scenarios_hardening.sql
 supabase/migrations/0009_achievements.sql
 supabase/migrations/0010_streak.sql
 supabase/migrations/0011_progressao_historico.sql
+supabase/migrations/0012_progressao_historico_hardening.sql
 
 supabase/seed/skill_items_en.sql
 supabase/seed/skill_items_meanings.sql
