@@ -13,6 +13,7 @@ import {
 } from "@/lib/assessment/spaced-repetition";
 import { checkThresholds } from "@/lib/achievements/unlock";
 import type { Achievement } from "@/lib/achievements/types";
+import { atualizarStreak } from "@/lib/streak/update";
 
 export interface RecordPracticeResponseResult {
   itemStatus: "conhecido" | "aprendendo" | "desconhecido";
@@ -103,7 +104,12 @@ export async function recordPracticeResponse(
   if (updateError) fail(updateError);
   if (statusError) fail(statusError);
 
-  const newlyUnlocked = await checkThresholds(db, userId, "vocabulario_dominado");
+  // As duas chamadas sao independentes (nenhuma depende da outra) — rodam
+  // em paralelo, mesmo padrao ja usado nas duas escritas acima.
+  const [newlyUnlocked] = await Promise.all([
+    checkThresholds(db, userId, "vocabulario_dominado"),
+    atualizarStreak(db),
+  ]);
 
   return {
     itemStatus,
