@@ -36,6 +36,14 @@
 - `app/dashboard/page.tsx` — busca `progressao_historico` no `Promise.all` existente, renderiza a seção "Progressão"
 - `README.md` — migration 0011 na lista
 
+**Adicionados durante a execução (revisão de código), fora do escopo original do plano:**
+- `supabase/migrations/0012_progressao_historico_hardening.sql` — CHECK constraints (1-6) nas colunas de nível
+- Resumo `sr-only` e comentário de precondição de ordenação em `progress-chart.tsx`
+- Eixo X escalado por data real (não por índice) em `progress-chart.tsx`
+- Reordenação das seções do grid em `app/dashboard/page.tsx` (Progressão ao lado de Hoje, não entre Sequência e Objetivo)
+
+Ver `docs/superpowers/specs/2026-09-10-progressao-design.md` § "Nota pós-implementação" para o raciocínio de cada uma.
+
 ---
 
 ### Task 1: Extrair helper de data compartilhado

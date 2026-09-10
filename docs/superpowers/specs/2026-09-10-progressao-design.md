@@ -79,3 +79,11 @@ O componente de gráfico (`progress-chart.tsx`) não ganha teste automatizado �
 - Zoom, filtro de período ou tooltip interativo no gráfico — SVG estático simples, sem interatividade.
 - Nova página dedicada (`/dashboard/progressao`) — decisão deliberada de reaproveitar o `/dashboard` existente, como o streak.
 - XP / níveis — próximo (e último) sub-projeto do mesmo epic (#25).
+
+## Nota pós-implementação
+
+Duas correções surgidas durante a revisão de código, aplicadas além do desenhado acima:
+
+- **Migration de hardening (`0012_progressao_historico_hardening.sql`):** adiciona `check (nivel_x between 1 and 6)` nas três colunas de nível. Motivo: como `registrarProgressaoDiaria` nunca lança exceção, um bug de mapeamento persistiria dado inválido e permanente no histórico sem nenhum erro visível; o CHECK faz esse tipo de bug falhar alto no banco em vez de silenciosamente corromper o gráfico.
+- **Resumo textual acessível (`sr-only`)** no `progress-chart.tsx`, além do `aria-label` do `<svg>`: o `aria-label` original só nomeava o tópico do gráfico, sem transmitir os dados em si (nível inicial/final por domínio) — gap de acessibilidade (WCAG 1.1.1) fechado com uma frase por domínio.
+- **Eixo X proporcional à data real**, não ao índice do array: a versão inicial espaçava os pontos uniformemente por posição, o que distorcia o tempo decorrido quando há dias sem prática (rotineiro, dado o mecanismo de freeze do streak). Corrigido para escalar pela diferença real de datas.
