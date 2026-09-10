@@ -6,7 +6,7 @@ const FREEZE_MAXIMO = 2;
 const DIAS_POR_FREEZE = 7;
 
 function hojeISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return new Date().toLocaleDateString("en-CA");
 }
 
 function diffDias(a: string, b: string): number {
