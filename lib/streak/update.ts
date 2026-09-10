@@ -1,13 +1,10 @@
 import type { supabaseAdmin } from "@/lib/supabase/server";
+import { hojeISO } from "@/lib/date";
 
 type Db = ReturnType<typeof supabaseAdmin>;
 
 const FREEZE_MAXIMO = 2;
 const DIAS_POR_FREEZE = 7;
-
-function hojeISO(): string {
-  return new Date().toLocaleDateString("en-CA");
-}
 
 function diffDias(a: string, b: string): number {
   const msPorDia = 24 * 60 * 60 * 1000;
