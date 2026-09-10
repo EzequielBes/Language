@@ -5,6 +5,7 @@ import { getLocalUserId } from "@/lib/mcp/shared";
 import { getHeaderData } from "@/lib/profile/header-data";
 import { DashboardHeader } from "./_components/dashboard-header";
 import { DashboardSection } from "./_components/dashboard-section";
+import { ProgressChart } from "./_components/progress-chart";
 
 // Sempre dados ao vivo do Supabase — nunca prerenderizar estatico no build.
 export const dynamic = "force-dynamic";
@@ -35,6 +36,7 @@ export default async function DashboardPage() {
     { count: revisoesVencidas, error: revisoesError },
     { count: atividadesPendentes, error: atividadesError },
     { data: streak, error: streakError },
+    { data: progressao, error: progressaoError },
     headerData,
   ] = await Promise.all([
     db.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
@@ -68,6 +70,11 @@ export default async function DashboardPage() {
       .select("dias_atual, dias_recorde")
       .eq("singleton", true)
       .maybeSingle(),
+    db
+      .from("progressao_historico")
+      .select("data, nivel_vocabulario, nivel_gramatica, nivel_expressao")
+      .eq("user_id", userId)
+      .order("data", { ascending: true }),
     getHeaderData(db),
   ]);
 
@@ -79,6 +86,7 @@ export default async function DashboardPage() {
     ["revisoesVencidas", revisoesError],
     ["atividadesPendentes", atividadesError],
     ["streak", streakError],
+    ["progressao", progressaoError],
   ] as const) {
     if (error) console.error(`[dashboard] ${label} query failed:`, error.message);
   }
@@ -92,6 +100,7 @@ export default async function DashboardPage() {
 
   const diasAtual = streak?.dias_atual ?? 0;
   const diasRecorde = streak?.dias_recorde ?? 0;
+  const progressaoHistorico = progressao ?? [];
 
   return (
     <>
@@ -161,6 +170,10 @@ export default async function DashboardPage() {
               <p className="mt-3 text-sm text-ink-soft">
                 Recorde: {diasRecorde} dia{diasRecorde === 1 ? "" : "s"}
               </p>
+            </DashboardSection>
+
+            <DashboardSection label="Progressão" className="lg:col-span-2">
+              <ProgressChart historico={progressaoHistorico} />
             </DashboardSection>
 
             <DashboardSection label="Objetivo" className="">
